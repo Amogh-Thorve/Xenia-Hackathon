@@ -1,0 +1,477 @@
+{% extends "base.html" %}
+{% block title %}My Profile{% endblock %}
+
+{% block content %}
+<div class="two-col">
+    <!-- ═══ LEFT: Profile Card ═══ -->
+    <div class="sidebar-sticky">
+        <div class="glass-card-static overflow-hidden animate-fadeInUp">
+            <!-- Banner -->
+            <div class="profile-banner"></div>
+            <!-- Avatar -->
+            <div class="profile-avatar-wrapper">
+                <div class="profile-avatar">
+                    <img src="{{ url_for('static', filename='profile_pics/' + current_user.profile_image) }}"
+                        alt="Avatar" style="object-fit: cover;">
+                </div>
+            </div>
+            <style>
+                .badge-locked {
+                    filter: grayscale(1);
+                    opacity: 0.6;
+                }
+
+                .badge-earned {
+                    filter: none !important;
+                    opacity: 1 !important;
+                }
+            </style>
+            <div style="padding: 0.5rem 1.5rem 1.5rem; text-align:center;">
+                <h2 style="font-size:1.5rem; font-weight:800; margin-top:0.5rem;">{{ current_user.username }}</h2>
+                <span class="level-badge mt-2">Lv.{{ current_user.level_info.level }} {{ current_user.level_info.name
+                    }}</span>
+                <p class="text-muted text-sm mt-1">{{ current_user.college or 'Student Member' }}</p>
+
+                <!-- XP Progress -->
+                <div style="margin-top:1.25rem;">
+                    <div class="flex justify-between text-xs mb-1">
+                        <span style="color:var(--text-muted);">XP Progress</span>
+                        <span style="color:var(--accent-primary-light); font-weight:700;">{{ current_user.xp }} / {{
+                            current_user.level_info.next_level_xp }} XP</span>
+                    </div>
+                    <div class="xp-bar-container">
+                        <div class="xp-bar-fill" style="width: {{ current_user.level_info.progress }}%;"></div>
+                    </div>
+                </div>
+
+                <!-- Stats Row -->
+                <div class="grid grid-cols-3 gap-2 mt-4" style="text-align:center;">
+                    <div>
+                        <div style="font-size:1.25rem; font-weight:800; color:var(--accent-primary-light);">{{
+                            current_user.xp }}</div>
+                        <div class="text-xs text-muted">Total XP</div>
+                    </div>
+                    <div>
+                        <div style="font-size:1.25rem; font-weight:800; color:var(--accent-amber);">🔥{{
+                            current_user.streak_count }}</div>
+                        <div class="text-xs text-muted">Streak</div>
+                    </div>
+                    <div>
+                        <div style="font-size:1.25rem; font-weight:800; color:var(--accent-emerald);">{{
+                            current_user.badge_list|length }}</div>
+                        <div class="text-xs text-muted">Badges</div>
+                    </div>
+                </div>
+
+                <!-- Profile Completion -->
+                <div style="margin-top:1.5rem;">
+                    <div class="flex justify-between text-xs mb-1">
+                        <span style="color:var(--text-muted);">Profile Completion</span>
+                        <span style="color:var(--accent-emerald); font-weight:700;">{{ completion_score }}%</span>
+                    </div>
+                    <div class="xp-bar-container" style="height:6px;">
+                        <div class="xp-bar-fill"
+                            style="width: {{ completion_score }}%; background: var(--gradient-success);"></div>
+                    </div>
+                </div>
+
+                <div class="mt-4">
+                    <a href="{{ url_for('generate_portfolio') }}" class="btn btn-secondary w-full"
+                        style="font-size:0.85rem;">📄 Download Portfolio (PDF)</a>
+                </div>
+
+                <!-- Edit Profile Form -->
+                <form action="" method="POST" enctype="multipart/form-data" style="margin-top:1.5rem; text-align:left;">
+                    <div class="form-group">
+                        <label class="form-label">📸 Profile Picture</label>
+                        <div class="custom-file-upload-wrapper">
+                            <label for="picture_upload" class="custom-file-label" id="file_label">
+                                <span class="upload-icon">📁</span>
+                                <span class="upload-text">Choose a photo...</span>
+                            </label>
+                            <input type="file" id="picture_upload" name="picture" class="hidden-file-input"
+                                accept="image/*" onchange="updateFileName(this)">
+                        </div>
+                    </div>
+
+                    <style>
+                        .custom-file-upload-wrapper {
+                            position: relative;
+                            width: 100%;
+                        }
+
+                        .hidden-file-input {
+                            position: absolute;
+                            width: 0.1px;
+                            height: 0.1px;
+                            opacity: 0;
+                            overflow: hidden;
+                            z-index: -1;
+                        }
+
+                        .custom-file-label {
+                            display: flex;
+                            align-items: center;
+                            gap: 0.75rem;
+                            padding: 0.75rem 1rem;
+                            background: rgba(255, 255, 255, 0.05);
+                            border: 1px solid rgba(255, 255, 255, 0.1);
+                            border-radius: var(--radius-md);
+                            cursor: pointer;
+                            transition: all 0.2s ease;
+                            color: var(--text-secondary);
+                            font-size: 0.9rem;
+                        }
+
+                        .custom-file-label:hover {
+                            background: rgba(255, 255, 255, 0.1);
+                            border-color: var(--accent-primary-light);
+                            color: var(--text-primary);
+                        }
+
+                        .upload-icon {
+                            font-size: 1.1rem;
+                        }
+
+                        .file-selected {
+                            border-color: var(--accent-emerald) !important;
+                            background: rgba(16, 185, 129, 0.05) !important;
+                            color: var(--accent-emerald) !important;
+                        }
+                    </style>
+
+                    <div class="form-group">
+                        <label class="form-label">✉️ Email</label>
+                        <input type="text" value="{{ current_user.email }}" disabled class="form-input"
+                            style="opacity:0.6; cursor:not-allowed;">
+                    </div>
+                    <div class="form-group">
+                        <label for="college" class="form-label">🏫 College / University</label>
+                        <input type="text" id="college" name="college" value="{{ current_user.college or '' }}"
+                            placeholder="Enter your college" class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <div class="flex justify-between items-center mb-2">
+                            <label for="hobbies" class="form-label" style="margin-bottom:0;">🎯 Interests</label>
+                            <span
+                                style="font-size:0.65rem; padding:0.15rem 0.5rem; background:rgba(99,102,241,0.1); color:var(--accent-primary-light); border-radius:var(--radius-full);">Comma
+                                separated</span>
+                        </div>
+                        <textarea id="hobbies" name="hobbies" rows="2" placeholder="Coding, Sports, AI, Music..."
+                            class="form-input" style="resize:vertical;">{{ current_user.hobbies or '' }}</textarea>
+                        {% if user_hobbies %}
+                        <div class="flex flex-wrap gap-2 mt-2">
+                            {% for hobby in user_hobbies %}
+                            <span class="tag">{{ hobby }}</span>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    <p
+                        style="font-size:0.75rem; color:var(--text-muted); text-align:center; margin-bottom:0.75rem; font-style:italic;">
+                        "Tell us what you love — we'll find your tribe ✨"</p>
+                    <button type="submit" class="btn btn-primary w-full">Save Profile</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ RIGHT: Content Areas ═══ -->
+    <div>
+        <!-- Achievements -->
+        <div class="mb-8 animate-fadeInUp delay-100">
+            <div class="section-header">
+                <div>
+                    <h2 class="section-title">🏅 Achievements</h2>
+                    <p class="section-subtitle">Collect badges & showcase your campus journey</p>
+                </div>
+            </div>
+            <div class="card-grid" style="grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));">
+                {% for ach in achievements %}
+                <div
+                    class="glass-card badge-card {{ 'badge-earned' if ach.earned else 'badge-locked' }} {{ 'rarity-' + ach.rarity + '-card' if ach.earned }}">
+                    <span class="badge-icon">{{ ach.icon }}</span>
+                    <div class="badge-name">{{ ach.name }}</div>
+                    <div class="badge-desc">{{ ach.desc }}</div>
+                    <span class="badge-rarity rarity-{{ ach.rarity }}">{{ ach.rarity }}</span>
+                    <div class="badge-earned-pct">{{ ach.earned_pct }}% of students earned</div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Streak Heatmap -->
+        <div class="mb-8 animate-fadeInUp delay-200">
+            <div class="section-header">
+                <div>
+                    <h2 class="section-title">📅 Activity Streak</h2>
+                    <p class="section-subtitle">Your campus activity over the last 91 days</p>
+                </div>
+            </div>
+            <div class="glass-card-static p-6">
+                <div class="heatmap-grid" id="heatmap-grid"></div>
+                <div class="flex justify-between mt-3" style="font-size:0.7rem; color:var(--text-muted);">
+                    <span>91 days ago</span>
+                    <div class="flex items-center gap-2">
+                        <span>Less</span>
+                        <span
+                            style="width:12px;height:12px;border-radius:3px;background:rgba(255,255,255,0.05);display:inline-block;"></span>
+                        <span
+                            style="width:12px;height:12px;border-radius:3px;background:rgba(99,102,241,0.2);display:inline-block;"></span>
+                        <span
+                            style="width:12px;height:12px;border-radius:3px;background:rgba(99,102,241,0.4);display:inline-block;"></span>
+                        <span
+                            style="width:12px;height:12px;border-radius:3px;background:rgba(99,102,241,0.6);display:inline-block;"></span>
+                        <span
+                            style="width:12px;height:12px;border-radius:3px;background:rgba(99,102,241,0.8);display:inline-block;"></span>
+                        <span>More</span>
+                    </div>
+                    <span>Today</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Skill & Career Section -->
+        <div class="mb-8 animate-fadeInUp delay-200">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Skill Radar -->
+                <div class="glass-card p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="section-title" style="margin-bottom:0;">🧩 Skill Profile</h3>
+                        <button onclick="document.getElementById('skillModal').style.display='flex'"
+                            class="btn btn-xs btn-secondary">+ Add Skill</button>
+                    </div>
+                    <div style="position: relative; height:300px; width:100%;">
+                        <canvas id="skillChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Skill Modal -->
+                <div id="skillModal"
+                    style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:1000; justify-content:center; align-items:center; backdrop-filter: blur(5px);">
+                    <div class="glass-card p-6 animate-fadeInUp"
+                        style="width:90%; max-width:500px; position:relative; max-height:80vh; overflow-y:auto;">
+                        <button onclick="document.getElementById('skillModal').style.display='none'"
+                            style="position:absolute; top:1rem; right:1rem; background:none; border:none; color:white; font-size:1.5rem; cursor:pointer;">&times;</button>
+                        <h3 class="text-xl font-bold mb-2">Add Skills</h3>
+                        <p class="text-sm text-muted mb-4">Select skills you've acquired to boost your career profile.
+                        </p>
+
+                        <form action="{{ url_for('profile') }}" method="POST">
+                            <input type="hidden" name="add_skill" value="true">
+
+                            <div class="skill-grid">
+                                {% for skill in all_skills %}
+                                <label class="skill-chip">
+                                    <input type="checkbox" name="skill_names" value="{{ skill.name }}">
+                                    <span>{{ skill.name }}</span>
+                                </label>
+                                {% endfor %}
+                            </div>
+
+                            <div style="margin-top:1.5rem;">
+                                <button type="submit" class="btn btn-primary w-full">Add Selected Skills (+XP)
+                                    🚀</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <style>
+                    .skill-grid {
+                        display: flex;
+                        flex-wrap: wrap;
+                        gap: 0.5rem;
+                    }
+
+                    .skill-chip {
+                        position: relative;
+                        cursor: pointer;
+                    }
+
+                    .skill-chip input {
+                        display: none;
+                    }
+
+                    .skill-chip span {
+                        display: inline-block;
+                        padding: 0.5rem 1rem;
+                        background: rgba(255, 255, 255, 0.1);
+                        color: rgba(255, 255, 255, 0.7);
+                        border-radius: 50px;
+                        font-size: 0.9rem;
+                        transition: all 0.2s ease;
+                        border: 1px solid rgba(255, 255, 255, 0.1);
+                    }
+
+                    .skill-chip:hover span {
+                        background: rgba(255, 255, 255, 0.2);
+                        color: white;
+                    }
+
+                    .skill-chip input:checked+span {
+                        background: var(--accent-emerald);
+                        color: white;
+                        border-color: var(--accent-emerald);
+                        box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
+                    }
+                </style>
+
+                <!-- Career Alignment -->
+                <div class="glass-card p-6">
+                    <h3 class="section-title mb-4">🚀 Career Path Alignment</h3>
+                    <div class="space-y-4">
+                        {% set careers = current_user.get_career_alignment() %}
+                        {% for career in careers[:4] %}
+                        <div>
+                            <div class="flex justify-between text-sm mb-1">
+                                <span class="font-bold">{{ career.name }}</span>
+                                <span class="{{ 'text-emerald-400' if career.match > 70 else 'text-muted' }}">{{
+                                    career.match }}%</span>
+                            </div>
+                            <div class="xp-bar-container">
+                                <div class="xp-bar-fill"
+                                    style="width:{{ career.match }}%; background: var(--gradient-accent);"></div>
+                            </div>
+                            {% if career.missing %}
+                            <p class="text-xs text-muted mt-1">Needs: {{ career.missing[:2]|join(', ') }}</p>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI Recommendations -->
+        <div class="animate-fadeInUp delay-300">
+            <div class="section-header">
+                <div>
+                    <h2 class="section-title">🤖 Clubs You'll Love</h2>
+                    <p class="section-subtitle">Personalized recommendations powered by AI</p>
+                </div>
+            </div>
+
+            {% if recommended_clubs %}
+            <div class="card-grid card-grid-2">
+                {% for club in recommended_clubs %}
+                <div class="glass-card p-6 rec-card">
+                    <span class="rec-match-badge">{{ club.match_percentage }}% Match</span>
+                    <div class="rec-avatar">
+                        <img src="{{ url_for('static', filename='club_logos/' + club.image_file) }}"
+                            alt="{{ club.name }}">
+                    </div>
+                    <div style="flex:1; min-width:0;">
+                        <span class="club-category">{{ club.category or 'General' }}</span>
+                        <h3 style="font-size:1.05rem; font-weight:700; color:var(--text-primary); margin-top:0.25rem;">
+                            {{ club.name }}</h3>
+                        <p class="text-secondary text-sm line-clamp-2 mt-1">{{ club.description }}</p>
+                        <div class="flex gap-2 mt-3">
+                            <a href="{{ url_for('club_details', club_id=club.id) }}" class="btn btn-secondary btn-sm"
+                                style="flex:1;">Explore</a>
+                            <a href="{{ url_for('join_club_action', club_id=club.id) }}" class="btn btn-primary btn-sm"
+                                style="flex:1;">Join +25 XP</a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="glass-card-static empty-state">
+                <span class="empty-state-icon">🚀</span>
+                <h3 class="empty-state-title">No new recommendations</h3>
+                <p class="empty-state-desc">You've explored all matching clubs! Update your interests above to discover
+                    more, or browse all clubs from the home page.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Build heatmap
+    (function () {
+        const data = {{ heatmap_data | safe
+    }};
+    const grid = document.getElementById('heatmap-grid');
+    const today = new Date();
+    for (let i = 90; i >= 0; i--) {
+        const d = new Date(today);
+        d.setDate(d.getDate() - i);
+        const key = d.toISOString().split('T')[0];
+        const cell = document.createElement('div');
+        cell.className = 'heatmap-cell';
+        const count = data[key] || 0;
+        if (count >= 4) cell.classList.add('heatmap-4');
+        else if (count >= 3) cell.classList.add('heatmap-3');
+        else if (count >= 2) cell.classList.add('heatmap-2');
+        else if (count >= 1) cell.classList.add('heatmap-1');
+        cell.title = `${key}: ${count} activities`;
+        grid.appendChild(cell);
+    }
+    }) ();  // Close heatmap function
+
+    // Skill Chart
+    (function () {
+        const ctx = document.getElementById('skillChart');
+        if (!ctx) return;
+
+        const skillData = {{ current_user.get_skill_stats() | tojson
+    }};
+    const labels = Object.keys(skillData);
+    const dataPoints = Object.values(skillData);
+
+    new Chart(ctx, {
+        type: 'radar',
+        data: {
+            labels: labels.length ? labels : ['No Skills Yet'],
+            datasets: [{
+                label: 'Skill Level',
+                data: labels.length ? dataPoints : [0],
+                backgroundColor: 'rgba(99, 102, 241, 0.2)',
+                borderColor: 'rgba(99, 102, 241, 1)',
+                borderWidth: 2,
+                pointBackgroundColor: '#fff',
+                pointBorderColor: '#6366f1'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                r: {
+                    angleLines: { color: 'rgba(255, 255, 255, 0.1)' },
+                    grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                    pointLabels: { color: 'rgba(255, 255, 255, 0.7)', font: { size: 11 } },
+                    ticks: { display: false, backdropColor: 'transparent' },
+                    suggestedMin: 0,
+                    suggestedMax: 100
+                }
+            },
+            plugins: {
+                legend: { display: false }
+            }
+        }
+    });
+    }) ();
+
+    function updateFileName(input) {
+        const label = document.getElementById('file_label');
+        const textSpan = label.querySelector('.upload-text');
+        const iconSpan = label.querySelector('.upload-icon');
+
+        if (input.files && input.files.length > 0) {
+            const fileName = input.files[0].name;
+            textSpan.textContent = fileName;
+            label.classList.add('file-selected');
+            iconSpan.textContent = '✅';
+        } else {
+            textSpan.textContent = 'Choose a photo...';
+            label.classList.remove('file-selected');
+            iconSpan.textContent = '📁';
+        }
+    }
+</script>
+{% endblock %}

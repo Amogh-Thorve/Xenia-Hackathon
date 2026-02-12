@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+{% block title %}{{ club.name }}{% endblock %}
+
+{% block content %}
+<div style="max-width:900px; margin:0 auto;">
+    <!-- Club Header Card -->
+    <div class="glass-card-static overflow-hidden mb-6 animate-fadeInUp">
+        <div class="club-detail-banner">
+            <div class="club-detail-avatar">
+                <img src="{{ url_for('static', filename='club_logos/' + club.image_file) }}" alt="{{ club.name }}">
+            </div>
+        </div>
+        <div style="padding: 3.5rem 2rem 2rem;">
+            <div class="flex justify-between items-start" style="flex-wrap:wrap; gap:1rem;">
+                <div>
+                    <span class="club-category">{{ club.category or 'General' }}</span>
+                    <h1 style="font-size:2rem; font-weight:800; color:var(--text-primary); margin-top:0.5rem;">{{
+                        club.name }}</h1>
+                    <p class="text-secondary mt-2" style="max-width:500px; line-height:1.6;">{{ club.description }}</p>
+                    <div class="flex gap-4 mt-3">
+                        <span class="event-meta-item"><span class="emoji">👥</span> {{ club.member_count }}
+                            members</span>
+                        <span class="event-meta-item"><span class="emoji">📅</span> {{ club.events|length }}
+                            events</span>
+                        <span class="event-meta-item"><span class="emoji">⭐</span> {{ club.popularity_score }}
+                            popularity</span>
+                    </div>
+                </div>
+                <div>
+                    <div class="flex items-center gap-4">
+                        {% if current_user.is_authenticated %}
+                        {% if membership_status == 'manager' %}
+                        <span class="btn btn-secondary" style="cursor:default; opacity:0.8;">👑 Manager</span>
+                        <form action="{{ url_for('delete_club', club_id=club.id) }}" method="POST" style="margin:0;"
+                            onsubmit="return confirm('⚠️ CRITICAL: Are you sure you want to PERMANENTLY delete this club? This will remove all events, messages, and member data. This action cannot be undone.')">
+                            <button type="submit" class="btn btn-secondary"
+                                style="color:var(--accent-red); border-color:var(--accent-red); background:rgba(239, 68, 68, 0.05); white-space: nowrap;">🗑️
+                                Delete Club</button>
+                        </form>
+                        {% elif membership_status == 'approved' %}
+                        <a href="{{ url_for('leave_club_action', club_id=club.id) }}" class="btn btn-secondary"
+                            onclick="return confirm('Are you sure you want to leave this club?')">🚪 Leave Club</a>
+                        {% elif membership_status == 'pending' %}
+                        <span class="btn btn-secondary" style="cursor:default; color:var(--accent-amber);">⏳
+                            Pending</span>
+                        {% else %}
+                        <a href="{{ url_for('join_club_action', club_id=club.id) }}" class="btn btn-primary">Join Club
+                            +25
+                            XP ⚡</a>
+                        {% endif %}
+                        {% else %}
+                        <a href="{{ url_for('login') }}" class="btn btn-secondary">Login to Join</a>
+                        {% endif %}
+
+                        {% if membership_status == 'manager' or membership_status == 'approved' %}
+                        <a href="{{ url_for('club_chat', club_id=club.id) }}" class="btn btn-primary">💬 Enter Chat</a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Events Section -->
+    <div class="mb-6">
+        <h2 style="font-size:1.35rem; font-weight:700; margin-bottom:1rem;">📅 Club Events</h2>
+        {% if club.events %}
+        <div class="card-grid card-grid-2">
+            {% for event in club.events %}
+            <div class="glass-card p-6 event-card">
+                <div class="event-header">
+                    <span class="event-date-badge">{{ event.event_date.strftime('%b %d, %Y') }}</span>
+                    <span class="difficulty-badge diff-{{ event.difficulty|lower }}">{{ event.difficulty }}</span>
+                </div>
+                <h3 class="event-title">{{ event.title }}</h3>
+                <p class="event-desc">{{ event.description }}</p>
+                <div class="event-meta">
+                    <span class="xp-reward-badge">+{{ event.xp_reward }} XP</span>
+                    <span class="event-meta-item"><span class="emoji">👥</span> {{ event.attendee_count }} joined</span>
+                </div>
+                <div class="event-footer">
+                    <div class="countdown-timer"><span>⏱</span> {{ event.time_remaining }}</div>
+                    <div class="flex gap-2">
+                        {% if current_user.is_authenticated %}
+                        {% if current_user.id == event.creator_id %}
+                        <form action="{{ url_for('delete_event', event_id=event.id) }}" method="POST"
+                            onsubmit="return confirm('Are you sure you want to delete this event?')">
+                            <button type="submit" class="btn btn-secondary btn-sm"
+                                style="color:var(--accent-red); border-color:var(--accent-red); background:rgba(239, 68, 68, 0.05);">
+                                🗑️ Delete
+                            </button>
+                        </form>
+                        {% endif %}
+
+                        {% if event.is_user_registered(current_user) %}
+                        <button class="btn btn-secondary btn-sm" disabled style="cursor: default; opacity: 0.8;">
+                            Registered ✅
+                        </button>
+                        {% else %}
+                        <button onclick='openRegisterModal({{ {
+                                    "id": event.id,
+                                    "title": event.title,
+                                    "description": event.description,
+                                    "xp": event.xp_reward,
+                                    "difficulty": event.difficulty,
+                                    "fee": event.registration_fee,
+                                    "upi": event.upi_id or ""
+                                }|tojson|safe }})' class="btn btn-primary btn-sm">
+                            Register ⚡
+                        </button>
+                        {% endif %}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="glass-card-static empty-state" style="padding:2rem;">
+            <span style="font-size:2rem;">📅</span>
+            <p class="text-secondary text-sm mt-2">No events scheduled yet.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Manager Info -->
+    <div class="mb-6">
+        <h2 style="font-size:1.35rem; font-weight:700; margin-bottom:1rem;">👑 Club Manager</h2>
+        <div class="glass-card-static p-4" style="display:flex; align-items:center; gap:1rem;">
+            <div class="lb-avatar" style="background:linear-gradient(135deg, #6366f1, #8b5cf6);">
+                {{ club.manager.username[0].upper() }}
+            </div>
+            <div>
+                <div style="font-weight:700; color:var(--text-primary);">{{ club.manager.username }}</div>
+                <div class="text-xs text-muted">{{ club.manager.email }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Feedback Section -->
+    <div class="mb-6">
+        <h2 style="font-size:1.35rem; font-weight:700; margin-bottom:1rem;">📢 Anonymous Feedback</h2>
+        {% if current_user.is_authenticated %}
+        <div class="glass-card-static p-6 mb-4">
+            <form action="{{ url_for('submit_feedback', club_id=club.id) }}" method="POST">
+                <div class="form-group">
+                    <label for="content" class="form-label">Share your thoughts anonymously</label>
+                    <textarea name="content" id="content" rows="3" class="form-input"
+                        placeholder="What do you think about this club?" required style="resize:vertical;"></textarea>
+                </div>
+                <button type="submit" class="btn btn-secondary">Submit Feedback +10 XP 📝</button>
+            </form>
+        </div>
+        {% else %}
+        <p class="text-muted mb-4" style="font-style:italic;"><a href="{{ url_for('login') }}"
+                style="color:var(--accent-primary-light);">Login</a> to leave feedback.</p>
+        {% endif %}
+
+        <!-- Manager: Feedback Analysis -->
+        {% if membership_status == 'manager' %}
+        <div class="glass-card-static overflow-hidden">
+            <div
+                style="background:rgba(99,102,241,0.08); padding:1rem 1.5rem; border-bottom:1px solid var(--border-glass); display:flex; justify-content:space-between; align-items:center;">
+                <h3 style="font-weight:700; color:var(--text-primary);">🔐 Feedback Analysis</h3>
+                <span
+                    style="font-size:0.7rem; padding:0.2rem 0.6rem; background:rgba(99,102,241,0.15); color:var(--accent-primary-light); border-radius:var(--radius-full);">Private</span>
+            </div>
+            {% if club.feedback %}
+            <div>
+                {% for item in club.feedback %}
+                <div style="padding:1rem 1.5rem; border-bottom:1px solid var(--border-glass);">
+                    <div class="flex justify-between items-center mb-1">
+                        <div class="flex items-center gap-2">
+                            {% if item.sentiment_label == 'Positive' %}
+                            <span class="sentiment-positive" style="font-weight:700;">😊 Positive</span>
+                            {% elif item.sentiment_label == 'Negative' %}
+                            <span class="sentiment-negative" style="font-weight:700;">😟 Negative</span>
+                            {% else %}
+                            <span class="sentiment-neutral" style="font-weight:700;">😐 Neutral</span>
+                            {% endif %}
+                            <span class="text-xs text-muted">Score: {{ "%.2f"|format(item.sentiment_score) }}</span>
+                        </div>
+                        <span class="text-xs text-muted">{{ item.timestamp.strftime('%Y-%m-%d') }}</span>
+                    </div>
+                    <p class="text-secondary text-sm">{{ item.content }}</p>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div style="padding:2rem; text-align:center; color:var(--text-muted);">No feedback received yet.</div>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

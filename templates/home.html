@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+{% block title %}Home{% endblock %}
+
+{% block content %}
+<!-- ═══ HERO SECTION ═══ -->
+<div class="hero">
+    <div class="hero-content">
+        <h1 class="hero-title">Level Up Your Campus Life 🎮</h1>
+        <p class="hero-subtitle">Join clubs. Earn XP. Build your campus legacy. The ultimate gamified platform for
+            student communities.</p>
+        <div class="hero-actions">
+            {% if current_user.is_authenticated %}
+            <a href="{{ url_for('dashboard') }}" class="btn btn-primary btn-lg">📊 My Dashboard</a>
+            <a href="#featured-clubs" class="btn btn-secondary btn-lg">Explore Clubs</a>
+            {% else %}
+            <a href="{{ url_for('register') }}" class="btn btn-primary btn-lg">Get Started 🚀</a>
+            <a href="{{ url_for('leaderboard') }}" class="btn btn-secondary btn-lg">🏆 Explore Leaderboard</a>
+            {% endif %}
+        </div>
+        <div class="hero-stats">
+            <div class="hero-stat animate-fadeInUp delay-100">
+                <div class="hero-stat-number" data-counter="{{ global_stats.total_students }}">0</div>
+                <div class="hero-stat-label">Active Students</div>
+            </div>
+            <div class="hero-stat animate-fadeInUp delay-200">
+                <div class="hero-stat-number" data-counter="{{ global_stats.total_clubs }}">0</div>
+                <div class="hero-stat-label">Clubs</div>
+            </div>
+            <div class="hero-stat animate-fadeInUp delay-300">
+                <div class="hero-stat-number" data-counter="{{ global_stats.total_events }}">0</div>
+                <div class="hero-stat-label">Events This Month</div>
+            </div>
+        </div>
+    </div>
+    <!-- Floating Badge Previews -->
+    <div class="floating-badges">
+        <div class="floating-badge">🏅</div>
+        <div class="floating-badge">🧠</div>
+        <div class="floating-badge">🔥</div>
+        <div class="floating-badge">🌟</div>
+        <div class="floating-badge">👑</div>
+    </div>
+</div>
+
+<!-- ═══ UPCOMING EVENTS ═══ -->
+<div id="upcoming-events" class="mb-8">
+    <div class="section-header">
+        <div>
+            <h2 class="section-title">⚡ Upcoming Events</h2>
+            <p class="section-subtitle">Register, attend & earn XP</p>
+        </div>
+    </div>
+
+    {% if events %}
+    <div class="card-grid card-grid-3">
+        {% for event in events %}
+        <div class="glass-card event-card p-6 animate-fadeInUp delay-{{ loop.index0 % 5 }}00">
+            <div class="event-header">
+                <span class="event-club-name">{{ event.club.name }}</span>
+                <span class="event-date-badge">{{ event.event_date.strftime('%b %d') }}</span>
+            </div>
+            <h3 class="event-title">{{ event.title }}</h3>
+            <p class="event-desc">{{ event.description }}</p>
+            <div class="event-meta">
+                <span class="difficulty-badge diff-{{ event.difficulty|lower }}">{{ event.difficulty }}</span>
+                <span class="xp-reward-badge">+{{ event.xp_reward }} XP</span>
+                <span class="event-meta-item"><span class="emoji">👥</span> {{ event.attendee_count }} joined</span>
+            </div>
+            <div class="event-footer">
+                <div class="countdown-timer">
+                    <span>⏱</span>
+                    <span>{{ event.time_remaining }}</span>
+                </div>
+                <div class="flex gap-2">
+                    {% if current_user.is_authenticated %}
+                    {% if current_user.id == event.creator_id %}
+                    <form action="{{ url_for('delete_event', event_id=event.id) }}" method="POST"
+                        onsubmit="return confirm('Are you sure you want to delete this event?')">
+                        <button type="submit" class="btn btn-secondary btn-sm"
+                            style="color:var(--accent-red); border-color:var(--accent-red); background:rgba(239, 68, 68, 0.05);">
+                            🗑️ Delete
+                        </button>
+                    </form>
+                    {% endif %}
+
+                    {% if event.is_user_registered(current_user) %}
+                    <button class="btn btn-secondary btn-sm" disabled style="cursor: default; opacity: 0.8;">
+                        Registered ✅
+                    </button>
+                    {% else %}
+                    <button onclick='openRegisterModal({{ {
+                                "id": event.id,
+                                "title": event.title,
+                                "description": event.description,
+                                "difficulty": event.difficulty,
+                                "xp": event.xp_reward,
+                                "fee": event.registration_fee,
+                                "upi": event.upi_id or ""
+                            }|tojson|safe }})' class="btn btn-primary btn-sm">
+                        Register & Earn XP ⚡
+                    </button>
+                    {% endif %}
+                    {% else %}
+                    <a href="{{ url_for('login') }}" class="btn btn-secondary btn-sm">Login to Join</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="glass-card-static empty-state">
+        <span class="empty-state-icon">📅</span>
+        <h3 class="empty-state-title">No events scheduled yet</h3>
+        <p class="empty-state-desc">Check back later for exciting campus activities. Or create one yourself! 🚀</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- ═══ FEATURED CLUBS ═══ -->
+<div id="featured-clubs" class="mb-8">
+    <div class="section-header">
+        <div>
+            <h2 class="section-title">🔥 Featured Clubs</h2>
+            <p class="section-subtitle">Join a community & start earning XP</p>
+        </div>
+    </div>
+
+    {% if clubs %}
+    <div class="card-grid card-grid-4">
+        {% for club in clubs %}
+        <div class="glass-card club-card animate-fadeInUp delay-{{ loop.index0 % 5 }}00"
+            style="display:flex; flex-direction:column; height:100%;">
+            <span class="club-category">{{ club.category or 'General' }}</span>
+            <div class="club-avatar">
+                <img src="{{ url_for('static', filename='club_logos/' + club.image_file) }}" alt="{{ club.name }}">
+            </div>
+            <h3 class="club-name">{{ club.name }}</h3>
+            <p class="club-desc">{{ club.description }}</p>
+            <div class="club-members" style="margin-top:auto;">
+                <span>👥</span>
+                <span>{{ club.member_count }} members</span>
+            </div>
+            <a href="{{ url_for('club_details', club_id=club.id) }}" class="btn btn-secondary btn-sm w-full">
+                View Details →
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="glass-card-static empty-state">
+        <span class="empty-state-icon">🚀</span>
+        <h3 class="empty-state-title">No clubs yet — be the first!</h3>
+        <p class="empty-state-desc">Start building your campus journey by creating the first club.</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- ═══ MINI LEADERBOARD PREVIEW ═══ -->
+{% if top_users %}
+<div class="mb-8">
+    <div class="section-header">
+        <div>
+            <h2 class="section-title">🏆 Top Students</h2>
+            <p class="section-subtitle">The most active campus legends</p>
+        </div>
+        <a href="{{ url_for('leaderboard') }}" class="btn btn-secondary btn-sm">View Full Board →</a>
+    </div>
+    <div class="glass-card-static" style="padding: 0.5rem;">
+        {% for user in top_users %}
+        <div class="lb-row">
+            <div
+                class="lb-rank {% if loop.index == 1 %}lb-rank-1{% elif loop.index == 2 %}lb-rank-2{% elif loop.index == 3 %}lb-rank-3{% else %}lb-rank-default{% endif %}">
+                {% if loop.index == 1 %}<span class="lb-crown">👑</span>{% else %}#{{ loop.index }}{% endif %}
+            </div>
+            <div class="lb-avatar"
+                style="background: linear-gradient(135deg, hsl({{ loop.index * 60 }}, 70%, 50%), hsl({{ loop.index * 60 + 30 }}, 70%, 40%));">
+                {{ user.username[0].upper() }}
+            </div>
+            <div class="lb-user-info">
+                <div class="lb-username">
+                    {{ user.username }}
+                    <span class="level-badge" style="margin-left:0.5rem; font-size:0.65rem;">Lv.{{ user.level_info.level
+                        }}</span>
+                </div>
+                <div class="lb-college">{{ user.college or 'Student' }}</div>
+            </div>
+            <div class="lb-points">{{ user.xp }} XP</div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+{% endblock %}

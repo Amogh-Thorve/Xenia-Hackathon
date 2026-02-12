@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}Create Event{% endblock %}
+
+{% block content %}
+<div style="max-width:600px; margin:0 auto;">
+    <div class="glass-card-static animate-fadeInUp" style="padding:2.5rem;">
+        <div style="text-align:center; margin-bottom:2rem;">
+            <span style="font-size:2.5rem; display:block; margin-bottom:0.5rem;">📅</span>
+            <h2 style="font-size:1.75rem; font-weight:800; color:var(--text-primary);">Create New Event</h2>
+            <p class="text-secondary text-sm mt-1">Host an event & earn 20 XP ✨</p>
+        </div>
+
+        <form action="" method="POST">
+            <div class="form-group">
+                <label for="title" class="form-label">Event Title</label>
+                <input type="text" id="title" name="title" required class="form-input" placeholder="Event name">
+            </div>
+            <div class="form-group">
+                <label for="club_id" class="form-label">Hosting Club</label>
+                <select id="club_id" name="club_id" required class="form-select">
+                    {% for club in clubs %}
+                    <option value="{{ club.id }}">{{ club.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="event_date" class="form-label">Event Date & Time</label>
+                <input type="datetime-local" id="event_date" name="event_date" required class="form-input">
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div class="form-group">
+                    <label for="difficulty" class="form-label">Difficulty</label>
+                    <select id="difficulty" name="difficulty" class="form-select">
+                        <option value="Beginner">🟢 Beginner</option>
+                        <option value="Intermediate">🟡 Intermediate</option>
+                        <option value="Advanced">🔴 Advanced</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="xp_reward" class="form-label">XP Reward</label>
+                    <select id="xp_reward" name="xp_reward" class="form-select">
+                        <option value="20">20 XP</option>
+                        <option value="30" selected>30 XP</option>
+                        <option value="50">50 XP</option>
+                        <option value="75">75 XP</option>
+                        <option value="100">100 XP</option>
+                        <option value="150">150 XP</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div class="form-group">
+                    <label for="registration_fee" class="form-label">Registration Fee (₹)</label>
+                    <input type="number" id="registration_fee" name="registration_fee" step="0.01" value="0.00" min="0"
+                        required class="form-input">
+                </div>
+                <div class="form-group">
+                    <label for="upi_id" class="form-label">UPI ID for Payment</label>
+                    <input type="text" id="upi_id" name="upi_id" class="form-input" placeholder="example@upi">
+                </div>
+            </div>
+
+
+            <div class="form-group">
+                <label for="description" class="form-label">Description</label>
+                <textarea id="description" name="description" rows="4" required class="form-input"
+                    placeholder="Describe the event..." style="resize:vertical;"></textarea>
+            </div>
+
+            <div
+                style="background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.15); border-radius:var(--radius-md); padding:0.75rem 1rem; margin-bottom:1.5rem; display:flex; gap:0.75rem; align-items:center;">
+                <span style="font-size:1.25rem;">⚡</span>
+                <div>
+                    <div style="font-size:0.8rem; font-weight:600; color:var(--accent-emerald);">Organizer Reward</div>
+                    <div style="font-size:0.75rem; color:var(--text-muted);">+20 XP for creating an event</div>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary w-full btn-lg">Create Event ⚡</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}CampusConnect{% endblock %} — Level Up Your Campus Life</title>
+    <meta name="description"
+        content="Join clubs, earn XP, build your campus legacy. The gamified campus community platform.">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+
+    <!-- Ambient Glow Orbs -->
+    <div class="glow-orb glow-orb-1"></div>
+    <div class="glow-orb glow-orb-2"></div>
+    <div class="glow-orb glow-orb-3"></div>
+
+    <!-- Particle Canvas -->
+    <canvas id="particles-canvas"></canvas>
+
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="navbar-inner">
+            <a href="{{ url_for('home') }}" class="navbar-brand">⚡ CampusConnect</a>
+            <div class="navbar-links">
+                <a href="{{ url_for('home') }}" class="nav-link">Home</a>
+                <a href="{{ url_for('leaderboard') }}" class="nav-link">🏆 Leaderboard</a>
+                {% if current_user.is_authenticated %}
+                <a href="{{ url_for('dashboard') }}" class="nav-link">📊 Dashboard</a>
+
+                <a href="{{ url_for('profile') }}" class="nav-link" style="display:flex; align-items:center; gap:8px;">
+                    <img src="{{ url_for('static', filename='profile_pics/' + current_user.profile_image) }}" alt="PFP"
+                        style="width:24px; height:24px; border-radius:50%; object-fit:cover;">
+                    Profile
+                </a>
+
+                <a href="{{ url_for('create_club') }}" class="nav-link">+ Club</a>
+                <a href="{{ url_for('create_event') }}" class="nav-link">+ Event</a>
+                <div class="nav-link-xp"
+                    title="Level {{ current_user.level_info.level }} — {{ current_user.level_info.name }}">
+                    <span class="xp-badge">Lv.{{ current_user.level_info.level }}</span>
+                    <span>{{ current_user.xp }} XP</span>
+                    {% if current_user.streak_count > 0 %}
+                    <span style="color: #f59e0b;">🔥{{ current_user.streak_count }}</span>
+                    {% endif %}
+                </div>
+                <a href="{{ url_for('logout') }}" class="btn-nav btn-nav-ghost">Logout</a>
+                {% else %}
+                <a href="{{ url_for('login') }}" class="btn-nav btn-nav-ghost">Login</a>
+                <a href="{{ url_for('register') }}" class="btn-nav btn-nav-primary">Get Started</a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="flash-container">
+            {% for category, message in messages %}
+            <div class="flash-msg flash-{{ category }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>&copy; 2026 CampusConnect — Level Up Your Campus Life ⚡</p>
+    </footer>
+
+    <!-- Event Registration Modal -->
+    <div id="registerModal" class="modal-overlay" style="display:none;">
+        <div class="glass-card-static modal-content animate-zoomIn"
+            style="max-width:500px; width:90%; padding:2rem; position:relative;">
+            <button onclick="closeRegisterModal()" class="modal-close">&times;</button>
+            <div style="text-align:center; margin-bottom:1.5rem;">
+                <span id="modalEmoji" style="font-size:3rem; display:block; margin-bottom:0.5rem;">📅</span>
+                <h2 id="modalTitle" style="font-size:1.5rem; font-weight:800; color:var(--text-primary);">Event Title
+                </h2>
+                <div id="modalMeta" class="text-xs text-muted mt-1">Difficulty · XP</div>
+            </div>
+
+            <div id="modalDescription" class="text-secondary text-sm mb-6"
+                style="line-height:1.6; max-height:150px; overflow-y:auto; padding-right:10px;">
+                Event description goes here...
+            </div>
+
+            <div id="paymentSection"
+                style="background:rgba(99,102,241,0.05); border:1px solid rgba(99,102,241,0.1); border-radius:var(--radius-md); padding:1rem; margin-bottom:1.5rem;">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-sm font-semibold">Registration Fee:</span>
+                    <span id="modalFee" class="text-gradient font-bold" style="font-size:1.1rem;">₹0.00</span>
+                </div>
+                <div id="upiContainer" class="mt-3 pt-3"
+                    style="border-top:1px dashed rgba(99,102,241,0.2); display:none;">
+                    <div class="text-xs text-muted mb-1">Pay via UPI:</div>
+                    <div class="flex items-center justify-between bg-glass p-2 rounded-md">
+                        <code id="modalUpi"
+                            style="font-size:0.85rem; color:var(--accent-primary-light);">example@upi</code>
+                        <button onclick="copyUpi()" class="text-xs btn-nav" style="padding:2px 6px;">Copy</button>
+                    </div>
+                </div>
+            </div>
+
+            <form id="registerForm" action="" method="POST">
+                <div id="transactionGroup" class="form-group" style="display:none;">
+                    <label for="transaction_id" class="form-label">Transaction ID</label>
+                    <input type="text" id="transaction_id" name="transaction_id" class="form-input"
+                        placeholder="Enter UPI Ref / Txn ID" required>
+                </div>
+                <button type="submit" class="btn btn-primary w-full btn-lg">Complete Registration ⚡</button>
+            </form>
+        </div>
+    </div>
+
+    <style>
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(10, 10, 18, 0.85);
+            backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .modal-close:hover {
+            color: var(--text-primary);
+        }
+
+        .animate-zoomIn {
+            animation: zoomIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        @keyframes zoomIn {
+            from {
+                transform: scale(0.9);
+                opacity: 0;
+            }
+
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+    </style>
+
+    <!-- Particle JS -->
+    <script>
+        // Existing particle logic...
+        (function () {
+            const canvas = document.getElementById('particles-canvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            let particles = [];
+            const PARTICLE_COUNT = 50;
+
+            function resize() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            }
+            resize();
+            window.addEventListener('resize', resize);
+
+            function createParticle() {
+                return {
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    vx: (Math.random() - 0.5) * 0.3,
+                    vy: (Math.random() - 0.5) * 0.3,
+                    size: Math.random() * 2 + 0.5,
+                    opacity: Math.random() * 0.3 + 0.05,
+                };
+            }
+            for (let i = 0; i < PARTICLE_COUNT; i++) particles.push(createParticle());
+
+            function animate() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                particles.forEach(p => {
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
+                    if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                    ctx.fillStyle = `rgba(99, 102, 241, ${p.opacity})`;
+                    ctx.fill();
+                });
+
+                // Connect nearby particles
+                for (let i = 0; i < particles.length; i++) {
+                    for (let j = i + 1; j < particles.length; j++) {
+                        const dx = particles[i].x - particles[j].x;
+                        const dy = particles[i].y - particles[j].y;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        if (dist < 150) {
+                            ctx.beginPath();
+                            ctx.moveTo(particles[i].x, particles[i].y);
+                            ctx.lineTo(particles[j].x, particles[j].y);
+                            ctx.strokeStyle = `rgba(99, 102, 241, ${0.08 * (1 - dist / 150)})`;
+                            ctx.lineWidth = 0.5;
+                            ctx.stroke();
+                        }
+                    }
+                }
+                requestAnimationFrame(animate);
+            }
+            animate();
+        })();
+
+        // Confetti Helper
+        function launchConfetti() {
+            const colors = ['#6366f1', '#8b5cf6', '#a855f7', '#f59e0b', '#10b981', '#22d3ee'];
+            for (let i = 0; i < 60; i++) {
+                const piece = document.createElement('div');
+                piece.className = 'confetti-piece';
+                piece.style.left = (Math.random() * 100) + 'vw';
+                piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+                piece.style.animationDuration = (2 + Math.random() * 2) + 's';
+                piece.style.animationDelay = (Math.random() * 0.5) + 's';
+                piece.style.width = (6 + Math.random() * 8) + 'px';
+                piece.style.height = (6 + Math.random() * 8) + 'px';
+                piece.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+                document.body.appendChild(piece);
+                setTimeout(() => piece.remove(), 4000);
+            }
+        }
+
+        // Counter Animation
+        function animateCounters() {
+            document.querySelectorAll('[data-counter]').forEach(el => {
+                const target = parseInt(el.getAttribute('data-counter'));
+                let current = 0;
+                const step = Math.ceil(target / 60);
+                const interval = setInterval(() => {
+                    current += step;
+                    if (current >= target) {
+                        current = target;
+                        clearInterval(interval);
+                    }
+                    el.textContent = current.toLocaleString();
+                }, 30);
+            });
+        }
+
+        // Modal Logic
+        const registerModal = document.getElementById('registerModal');
+        const registerForm = document.getElementById('registerForm');
+
+        function openRegisterModal(eventData) {
+            document.getElementById('modalTitle').textContent = eventData.title;
+            document.getElementById('modalDescription').textContent = eventData.description;
+            document.getElementById('modalMeta').textContent = `${eventData.difficulty} · +${eventData.xp} XP`;
+            document.getElementById('modalFee').textContent = parseFloat(eventData.fee) > 0 ? `₹${eventData.fee}` : 'Free';
+
+            registerForm.action = `/event/${eventData.id}/join`;
+
+            if (parseFloat(eventData.fee) > 0) {
+                document.getElementById('upiContainer').style.display = 'block';
+                document.getElementById('modalUpi').textContent = eventData.upi || 'N/A';
+                document.getElementById('transactionGroup').style.display = 'block';
+                document.getElementById('transaction_id').required = true;
+            } else {
+                document.getElementById('upiContainer').style.display = 'none';
+                document.getElementById('transactionGroup').style.display = 'none';
+                document.getElementById('transaction_id').required = false;
+            }
+
+            registerModal.style.display = 'flex';
+        }
+
+        function closeRegisterModal() {
+            registerModal.style.display = 'none';
+        }
+
+        function copyUpi() {
+            const upi = document.getElementById('modalUpi').textContent;
+            navigator.clipboard.writeText(upi).then(() => {
+                alert('UPI ID copied to clipboard!');
+            });
+        }
+
+        // Auto-launch confetti if flash message contains 'Level Up'
+        document.addEventListener('DOMContentLoaded', function () {
+            animateCounters();
+            const flashes = document.querySelectorAll('.flash-msg');
+            flashes.forEach(f => {
+                if (f.textContent.includes('Level Up')) {
+                    launchConfetti();
+                }
+                // Auto-dismiss after 5s
+                setTimeout(() => {
+                    f.style.opacity = '0';
+                    f.style.transform = 'translateY(-10px)';
+                    f.style.transition = 'all 0.3s ease';
+                    setTimeout(() => f.remove(), 300);
+                }, 5000);
+            });
+        });
+    </script>
+
+    {% block scripts %}{% endblock %}
+</body>
+
+</html>

@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}Register{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="glass-card-static auth-card animate-fadeInUp">
+        <div style="text-align:center; margin-bottom:2rem;">
+            <span style="font-size:3rem; display:block; margin-bottom:0.5rem;">🚀</span>
+            <h2 class="auth-title">Join CampusConnect</h2>
+            <p class="auth-subtitle">Create an account and earn your first 10 XP!</p>
+        </div>
+
+        <form action="" method="POST">
+            <div class="form-group">
+                <label for="username" class="form-label">Username</label>
+                <input id="username" name="username" type="text" autocomplete="username" required class="form-input"
+                    placeholder="Choose a username">
+            </div>
+            <div class="form-group">
+                <label for="email" class="form-label">Email Address</label>
+                <input id="email" name="email" type="email" autocomplete="email" required class="form-input"
+                    placeholder="your@email.com">
+            </div>
+            <div class="form-group">
+                <label for="password" class="form-label">Password</label>
+                <input id="password" name="password" type="password" autocomplete="new-password" required
+                    class="form-input" placeholder="Create a strong password">
+            </div>
+            <div class="form-group">
+                required class="form-input" placeholder="Confirm your password">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" style="margin-bottom: 0.5rem; display: block;">Your Interests (Select at least
+                    1)</label>
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.5rem;">
+                    <label class="checkbox-label"><input type="checkbox" name="interests" value="Coding"> Coding</label>
+                    <label class="checkbox-label"><input type="checkbox" name="interests" value="Design"> Design</label>
+                    <label class="checkbox-label"><input type="checkbox" name="interests" value="Public Speaking">
+                        Public Speaking</label>
+                    <label class="checkbox-label"><input type="checkbox" name="interests" value="Leadership">
+                        Leadership</label>
+                    <label class="checkbox-label"><input type="checkbox" name="interests" value="Music"> Music</label>
+                    <label class="checkbox-label"><input type="checkbox" name="interests" value="Photography">
+                        Photography</label>
+                    <label class="checkbox-label"><input type="checkbox" name="interests" value="Gaming"> Gaming</label>
+                    <label class="checkbox-label"><input type="checkbox" name="interests" value="Social Service"> Social
+                        Service</label>
+                </div>
+                <style>
+                    .checkbox-label {
+                        display: flex;
+                        align-items: center;
+                        gap: 0.5rem;
+                        font-size: 0.9rem;
+                        color: var(--text-muted);
+                        cursor: pointer;
+                        padding: 0.5rem;
+                        border: 1px solid rgba(255, 255, 255, 0.1);
+                        border-radius: 8px;
+                        transition: all 0.2s;
+                    }
+
+                    .checkbox-label:hover {
+                        background: rgba(255, 255, 255, 0.05);
+                        color: var(--text-primary);
+                    }
+
+                    .checkbox-label input {
+                        accent-color: var(--accent-primary);
+                    }
+                </style>
+            </div>
+
+            <div
+                style="background:rgba(99,102,241,0.08); border:1px solid rgba(99,102,241,0.15); border-radius:var(--radius-md); padding:0.75rem 1rem; margin-bottom:1.5rem; display:flex; gap:0.75rem; align-items:center;">
+                <span style="font-size:1.25rem;">🎮</span>
+                <div>
+                    <div style="font-size:0.8rem; font-weight:600; color:var(--accent-primary-light);">Welcome Bonus!
+                    </div>
+                    <div style="font-size:0.75rem; color:var(--text-muted);">Earn +10 XP just for joining the platform
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary w-full btn-lg">Create Account 🚀</button>
+        </form>
+
+        <p style="text-align:center; margin-top:1.5rem; font-size:0.9rem; color:var(--text-muted);">
+            Already have an account? <a href="{{ url_for('login') }}"
+                style="color:var(--accent-primary-light); font-weight:600;">Sign in</a>
+        </p>
+    </div>
+</div>
+{% endblock %}

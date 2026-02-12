@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% block title %}Leaderboard{% endblock %}
+
+{% block content %}
+<div style="max-width: 900px; margin: 0 auto;">
+    <!-- Header -->
+    <div class="text-center mb-8 animate-fadeInUp">
+        <h1 style="font-size: 2.5rem; font-weight: 900;" class="text-gradient">🏆 Campus Leaderboard</h1>
+        <p class="text-secondary mt-2">Top students contributing to the campus community</p>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs mb-6">
+        <button class="tab active" onclick="showTab('students', this)">👤 Students</button>
+        <button class="tab" onclick="showTab('clubs', this)">🏫 Clubs</button>
+    </div>
+
+    <!-- Students Leaderboard -->
+    <div id="tab-students" class="glass-card-static" style="padding: 0.5rem;">
+        {% if users %}
+        {% for user in users %}
+        <div class="lb-row animate-fadeInUp" style="animation-delay: {{ loop.index0 * 0.05 }}s;">
+            <!-- Rank -->
+            <div
+                class="lb-rank {% if loop.index == 1 %}lb-rank-1{% elif loop.index == 2 %}lb-rank-2{% elif loop.index == 3 %}lb-rank-3{% else %}lb-rank-default{% endif %}">
+                {% if loop.index == 1 %}<span class="lb-crown">👑</span>{% else %}#{{ loop.index }}{% endif %}
+            </div>
+            <!-- Avatar -->
+            <div class="lb-avatar"
+                style="background: linear-gradient(135deg, hsl({{ (loop.index * 47) % 360 }}, 70%, 50%), hsl({{ (loop.index * 47 + 40) % 360 }}, 70%, 40%));">
+                {{ user.username[0].upper() }}
+            </div>
+            <!-- Info -->
+            <div class="lb-user-info">
+                <div class="lb-username">
+                    {{ user.username }}
+                    <span class="level-badge" style="margin-left:0.5rem; font-size:0.65rem;">
+                        Lv.{{ user.level_info.level }} {{ user.level_info.name }}
+                    </span>
+                </div>
+                <div class="lb-college">{{ user.college or 'Student' }}</div>
+            </div>
+            <!-- Badges -->
+            <div class="lb-badges"
+                style="display: flex; flex-direction: column; gap: 4px; align-items: flex-start; min-width: 140px;">
+                {% if user.badges %}
+                {% for badge_name in user.top_badges %}
+                {% if badge_name in badge_defs %}
+                <span class="lb-badge-chip" title="{{ badge_name }}">{{ badge_defs[badge_name].icon }} {{ badge_name
+                    }}</span>
+                {% endif %}
+                {% endfor %}
+                {% if user.badge_list|length > 3 %}
+                <span class="lb-badge-chip"
+                    style="background: rgba(99,102,241,0.1); color: var(--accent-primary-light);">+{{
+                    user.badge_list|length - 3 }} more</span>
+                {% endif %}
+                {% else %}
+                <span style="font-size:0.75rem; color: var(--text-muted);">No badges</span>
+                {% endif %}
+            </div>
+            <!-- Points -->
+            <div class="lb-points">
+                {% if user.streak_count > 0 %}
+                <span style="color: #f59e0b; font-size: 0.8rem;">🔥{{ user.streak_count }}</span>
+                {% endif %}
+                {{ user.xp }} XP
+            </div>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="empty-state">
+            <span class="empty-state-icon">🏆</span>
+            <h3 class="empty-state-title">No students yet</h3>
+            <p class="empty-state-desc">Be the first to climb the leaderboard!</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Clubs Leaderboard -->
+    <div id="tab-clubs" class="glass-card-static" style="padding: 0.5rem; display: none;">
+        {% if clubs %}
+        {% for club in clubs %}
+        <div class="lb-row animate-fadeInUp" style="animation-delay: {{ loop.index0 * 0.05 }}s;">
+            <div
+                class="lb-rank {% if loop.index == 1 %}lb-rank-1{% elif loop.index == 2 %}lb-rank-2{% elif loop.index == 3 %}lb-rank-3{% else %}lb-rank-default{% endif %}">
+                {% if loop.index == 1 %}<span class="lb-crown">👑</span>{% else %}#{{ loop.index }}{% endif %}
+            </div>
+            <div class="lb-avatar"
+                style="background: linear-gradient(135deg, hsl({{ (loop.index * 80) % 360 }}, 60%, 45%), hsl({{ (loop.index * 80 + 50) % 360 }}, 60%, 35%)); border-radius: var(--radius-md); overflow: hidden;">
+                <img src="{{ url_for('static', filename='club_logos/' + club.image_file) }}" alt="{{ club.name }}"
+                    style="width:100%;height:100%;object-fit:cover;">
+            </div>
+            <div class="lb-user-info">
+                <div class="lb-username">{{ club.name }}</div>
+                <div class="lb-college">{{ club.category or 'General' }} · {{ club.member_count }} members</div>
+            </div>
+            <div class="lb-points">{{ club.popularity_score }} pts</div>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="empty-state">
+            <span class="empty-state-icon">🏫</span>
+            <h3 class="empty-state-title">No clubs yet</h3>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function showTab(tab, btn) {
+        document.querySelectorAll('.tabs .tab').forEach(t => t.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('tab-students').style.display = tab === 'students' ? 'block' : 'none';
+        document.getElementById('tab-clubs').style.display = tab === 'clubs' ? 'block' : 'none';
+    }
+</script>
+{% endblock %}

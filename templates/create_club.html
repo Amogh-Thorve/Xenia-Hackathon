@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% block title %}Create Club{% endblock %}
+
+{% block content %}
+<div style="max-width:600px; margin:0 auto;">
+    <div class="glass-card-static animate-fadeInUp" style="padding:2.5rem;">
+        <div style="text-align:center; margin-bottom:2rem;">
+            <span style="font-size:2.5rem; display:block; margin-bottom:0.5rem;">🏫</span>
+            <h2 style="font-size:1.75rem; font-weight:800; color:var(--text-primary);">Create New Club</h2>
+            <p class="text-secondary text-sm mt-1">Start a community & earn 50 XP + Club Leader badge 👑</p>
+        </div>
+
+        <form action="" method="POST" enctype="multipart/form-data">
+            <div class="form-group">
+                <label for="name" class="form-label">Club Name</label>
+                <input type="text" id="name" name="name" required class="form-input" placeholder="Enter club name">
+            </div>
+            <div class="form-group">
+                <label for="category" class="form-label">Category</label>
+                <select id="category" name="category" class="form-select">
+                    <option value="General">General</option>
+                    <option value="Technology">Technology</option>
+                    <option value="Sports">Sports</option>
+                    <option value="Arts">Arts & Culture</option>
+                    <option value="Music">Music</option>
+                    <option value="Science">Science</option>
+                    <option value="Business">Business</option>
+                    <option value="Social">Social Impact</option>
+                    <option value="Gaming">Gaming</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="logo" class="form-label">Club Logo</label>
+                <div class="custom-file-upload-wrapper">
+                    <label for="logo_upload" class="custom-file-label" id="file_label">
+                        <span class="upload-icon">📁</span>
+                        <span class="upload-text">Choose a logo...</span>
+                    </label>
+                    <input type="file" id="logo_upload" name="logo" class="hidden-file-input" accept="image/*"
+                        onchange="updateFileName(this)">
+                </div>
+            </div>
+
+            <style>
+                .custom-file-upload-wrapper {
+                    position: relative;
+                    width: 100%;
+                }
+
+                .hidden-file-input {
+                    position: absolute;
+                    width: 0.1px;
+                    height: 0.1px;
+                    opacity: 0;
+                    overflow: hidden;
+                    z-index: -1;
+                }
+
+                .custom-file-label {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.75rem;
+                    padding: 0.75rem 1rem;
+                    background: rgba(255, 255, 255, 0.05);
+                    border: 1px solid rgba(255, 255, 255, 0.1);
+                    border-radius: var(--radius-md);
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                    color: var(--text-secondary);
+                    font-size: 0.9rem;
+                }
+
+                .custom-file-label:hover {
+                    background: rgba(255, 255, 255, 0.1);
+                    border-color: var(--accent-primary-light);
+                    color: var(--text-primary);
+                }
+
+                .upload-icon {
+                    font-size: 1.1rem;
+                }
+
+                .file-selected {
+                    border-color: var(--accent-emerald) !important;
+                    background: rgba(16, 185, 129, 0.05) !important;
+                    color: var(--accent-emerald) !important;
+                }
+            </style>
+
+            <script>
+                function updateFileName(input) {
+                    const label = document.getElementById('file_label');
+                    const textSpan = label.querySelector('.upload-text');
+                    const iconSpan = label.querySelector('.upload-icon');
+
+                    if (input.files && input.files.length > 0) {
+                        const fileName = input.files[0].name;
+                        textSpan.textContent = fileName;
+                        label.classList.add('file-selected');
+                        iconSpan.textContent = '✅';
+                    } else {
+                        textSpan.textContent = 'Choose a logo...';
+                        label.classList.remove('file-selected');
+                        iconSpan.textContent = '📁';
+                    }
+                }
+            </script>
+            <div class="form-group">
+                <label for="description" class="form-label">Description</label>
+                <textarea id="description" name="description" rows="4" required class="form-input"
+                    placeholder="What is your club about?" style="resize:vertical;"></textarea>
+            </div>
+
+            <div
+                style="background:rgba(245,158,11,0.08); border:1px solid rgba(245,158,11,0.15); border-radius:var(--radius-md); padding:0.75rem 1rem; margin-bottom:1.5rem; display:flex; gap:0.75rem; align-items:center;">
+                <span style="font-size:1.25rem;">🏆</span>
+                <div>
+                    <div style="font-size:0.8rem; font-weight:600; color:var(--accent-amber);">Rewards</div>
+                    <div style="font-size:0.75rem; color:var(--text-muted);">+50 XP & "Club Leader" badge for creating a
+                        club</div>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary w-full btn-lg">Create Club 🚀</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

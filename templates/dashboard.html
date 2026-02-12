@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="animate-fadeInUp">
+    <div class="section-header mb-6">
+        <div>
+            <h1 class="section-title">📊 Your Dashboard</h1>
+            <p class="section-subtitle">Track your campus journey</p>
+        </div>
+    </div>
+
+    <!-- XP & Stats Overview -->
+    <div class="card-grid" style="grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); margin-bottom: 2rem;">
+        <div class="glass-card stat-card animate-fadeInUp delay-100">
+            <div class="stat-icon">⚡</div>
+            <div class="stat-value text-gradient">{{ current_user.xp }}</div>
+            <div class="stat-label">Total XP</div>
+            <div class="xp-bar-container mt-2" style="height:6px;">
+                <div class="xp-bar-fill" style="width:{{ current_user.level_info.progress }}%;"></div>
+            </div>
+            <div class="text-xs text-muted mt-1">Level {{ current_user.level_info.level }} · {{
+                current_user.level_info.name }}</div>
+        </div>
+        <div class="glass-card stat-card animate-fadeInUp delay-200">
+            <div class="stat-icon">🔥</div>
+            <div class="stat-value" style="color:var(--accent-amber);">{{ current_user.streak_count }}</div>
+            <div class="stat-label">Day Streak</div>
+        </div>
+        <div class="glass-card stat-card animate-fadeInUp delay-300">
+            <div class="stat-icon">🏅</div>
+            <div class="stat-value" style="color:var(--accent-primary-light);">{{ current_user.badge_list|length }}
+            </div>
+            <div class="stat-label">Badges Earned</div>
+        </div>
+        <div class="glass-card stat-card animate-fadeInUp delay-400">
+            <div class="stat-icon">📅</div>
+            <div class="stat-value" style="color:var(--accent-emerald);">{{ my_events|length }}</div>
+            <div class="stat-label">Events Attended</div>
+        </div>
+    </div>
+
+    <div class="two-col">
+        <!-- Left: Upcoming Events & My Clubs -->
+        <div>
+            <!-- Upcoming Events -->
+            <div class="mb-6">
+                <h2 style="font-size:1.25rem; font-weight:700; margin-bottom:1rem;">⏰ Upcoming Events</h2>
+                {% if upcoming %}
+                <div class="space-y-4">
+                    {% for event in upcoming %}
+                    <div class="glass-card p-4" style="display:flex; align-items:center; gap:1rem;">
+                        <div
+                            style="width:48px; height:48px; border-radius:var(--radius-md); background:rgba(99,102,241,0.1); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                            <span style="font-size:1.5rem;">📅</span>
+                        </div>
+                        <div style="flex:1; min-width:0;">
+                            <div style="font-weight:700; color:var(--text-primary);">{{ event.title }}</div>
+                            <div class="text-xs text-muted">{{ event.club.name }} · {{ event.event_date.strftime('%b %d,
+                                %I:%M %p') }}</div>
+                        </div>
+                        <div style="text-align:right;">
+                            <span class="xp-reward-badge">+{{ event.xp_reward }} XP</span>
+                            <div class="countdown-timer mt-1" style="font-size:0.7rem;">{{ event.time_remaining }}</div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="glass-card-static empty-state" style="padding:2rem;">
+                    <span style="font-size:2rem;">📅</span>
+                    <p class="text-secondary text-sm mt-2">No upcoming events — check out the events page!</p>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- My Clubs -->
+            <div>
+                <h2 style="font-size:1.25rem; font-weight:700; margin-bottom:1rem;">🏫 My Clubs</h2>
+                {% if my_clubs %}
+                <div class="space-y-2">
+                    {% for uc in my_clubs %}
+                    <div class="glass-card p-4" style="display:flex; align-items:center; gap:1rem;">
+                        <div
+                            style="width:40px; height:40px; border-radius:var(--radius-md); overflow:hidden; background:var(--bg-glass); flex-shrink:0;">
+                            <img src="{{ url_for('static', filename='club_logos/' + uc.club.image_file) }}"
+                                alt="{{ uc.club.name }}" style="width:100%;height:100%;object-fit:cover;">
+                        </div>
+                        <div style="flex:1;">
+                            <div style="font-weight:600; color:var(--text-primary);">{{ uc.club.name }}</div>
+                            <div class="text-xs text-muted">{{ uc.club.category or 'General' }} · {{
+                                uc.club.member_count }} members</div>
+                        </div>
+                        <a href="{{ url_for('club_details', club_id=uc.club.id) }}"
+                            class="btn btn-secondary btn-sm">View</a>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="glass-card-static empty-state" style="padding:2rem;">
+                    <span style="font-size:2rem;">🚀</span>
+                    <p class="text-secondary text-sm mt-2">No clubs joined yet — start building your campus journey!</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Right: Network & Admin -->
+        <div>
+
+
+            <!-- Club Admin Panel -->
+            <div>
+                <h2 style="font-size:1.25rem; font-weight:700; margin-bottom:1rem;">👑 Club Admin Panel</h2>
+                {% if club_analytics %}
+                <div class="space-y-4">
+                    {% for ca in club_analytics %}
+                    <div class="glass-card-static p-6">
+                        <h3 style="font-size:1.1rem; font-weight:700; margin-bottom:1rem; color:var(--text-primary);">{{
+                            ca.club.name }}</h3>
+                        <div class="grid grid-cols-3 gap-4 mb-4" style="text-align:center;">
+                            <div>
+                                <div style="font-size:1.5rem; font-weight:800; color:var(--accent-primary-light);">{{
+                                    ca.members }}</div>
+                                <div class="text-xs text-muted">Members</div>
+                            </div>
+                            <div>
+                                <div style="font-size:1.5rem; font-weight:800; color:var(--accent-amber);">{{ ca.events
+                                    }}
+                                </div>
+                                <div class="text-xs text-muted">Events</div>
+                            </div>
+                            <div>
+                                <div style="font-size:1.5rem; font-weight:800; color:var(--accent-cyan);">{{ ca.feedback
+                                    }}
+                                </div>
+                                <div class="text-xs text-muted">Feedbacks</div>
+                            </div>
+                        </div>
+                        <!-- Sentiment Bar -->
+                        {% if ca.feedback > 0 %}
+                        <div style="margin-bottom:0.5rem;">
+                            <div class="flex justify-between text-xs mb-1">
+                                <span style="color:#6ee7b7;">😊 {{ ca.positive }} Positive</span>
+                                <span style="color:#fda4af;">😟 {{ ca.negative }} Negative</span>
+                            </div>
+                            <div
+                                style="display:flex; height:8px; border-radius:var(--radius-full); overflow:hidden; background:rgba(255,255,255,0.05);">
+                                {% set pos_pct = (ca.positive / ca.feedback * 100) if ca.feedback > 0 else 0 %}
+                                <div
+                                    style="width:{{ pos_pct }}%; background:var(--gradient-success); border-radius:var(--radius-full) 0 0 var(--radius-full);">
+                                </div>
+                                <div style="flex:1; background:rgba(244,63,94,0.3);"></div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        <div class="text-xs text-muted mt-2">
+                            Club Popularity Score: <span style="color:var(--accent-primary-light); font-weight:700;">{{
+                                ca.club.popularity_score }}</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="glass-card-static empty-state" style="padding:2rem;">
+                    <span style="font-size:2rem;">👑</span>
+                    <p class="text-secondary text-sm mt-2">You don't manage any clubs yet. <a
+                            href="{{ url_for('create_club') }}" style="color:var(--accent-primary-light);">Create one
+                            →</a>
+                    </p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endblock %}

@@ -1,6 +1,7 @@
 venv/
 __pycache__/
-instance/
+# instance/ (Include directory for persistence)
+
 .pytest_cache/
 *.pyc
 *.pyo
@@ -23,9 +24,9 @@ wheels/
 .installed.cfg
 *.egg
 
-# Database
-site.db
-db.sqlite3
+# Database (Tracking for portability)
+# site.db
+# db.sqlite3
 
 # Environment Variables
 .env

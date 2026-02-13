@@ -244,6 +244,64 @@
                     <div style="position: relative; height:300px; width:100%;">
                         <canvas id="skillChart"></canvas>
                     </div>
+
+                    <!-- Current Skills List -->
+                    <div class="mt-6">
+                        <h4 class="text-xs font-bold text-muted uppercase tracking-wider mb-3">Current Skills</h4>
+                        <div class="flex flex-wrap gap-2">
+                            {% for us in current_user.skills %}
+                            <div class="skill-tag-removable">
+                                <span>{{ us.skill.name }}</span>
+                                <form action="{{ url_for('profile') }}" method="POST" style="display:inline;">
+                                    <input type="hidden" name="remove_skill" value="true">
+                                    <input type="hidden" name="skill_id" value="{{ us.skill.id }}">
+                                    <button type="submit" class="remove-btn" title="Remove skill">&times;</button>
+                                </form>
+                            </div>
+                            {% endfor %}
+                            {% if not current_user.skills %}
+                            <p class="text-xs text-muted italic">No skills added yet.</p>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <style>
+                        .skill-tag-removable {
+                            display: flex;
+                            align-items: center;
+                            gap: 0.5rem;
+                            padding: 0.35rem 0.75rem;
+                            background: rgba(99, 102, 241, 0.1);
+                            border: 1px solid rgba(99, 102, 241, 0.2);
+                            border-radius: var(--radius-full);
+                            font-size: 0.8rem;
+                            color: var(--text-primary);
+                            transition: all 0.2s ease;
+                        }
+
+                        .skill-tag-removable:hover {
+                            border-color: var(--accent-primary-light);
+                            background: rgba(99, 102, 241, 0.2);
+                        }
+
+                        .remove-btn {
+                            background: none;
+                            border: none;
+                            color: var(--text-muted);
+                            font-size: 1.1rem;
+                            line-height: 1;
+                            cursor: pointer;
+                            padding: 0;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            transition: color 0.2s;
+                        }
+
+                        .remove-btn:hover {
+                            color: var(--accent-red);
+                        }
+                    </style>
                 </div>
 
                 <!-- Skill Modal -->
@@ -262,10 +320,12 @@
 
                             <div class="skill-grid">
                                 {% for skill in all_skills %}
+                                {% if skill.name not in user_skill_names %}
                                 <label class="skill-chip">
                                     <input type="checkbox" name="skill_names" value="{{ skill.name }}">
                                     <span>{{ skill.name }}</span>
                                 </label>
+                                {% endif %}
                                 {% endfor %}
                             </div>
 

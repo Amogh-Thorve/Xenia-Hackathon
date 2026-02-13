@@ -714,6 +714,21 @@ def profile():
              
              return redirect(url_for('profile'))
 
+        if 'remove_skill' in request.form:
+             try:
+                 skill_id = request.form.get('skill_id')
+                 us = UserSkill.query.filter_by(user_id=current_user.id, skill_id=skill_id).first()
+                 if us:
+                     db.session.delete(us)
+                     db.session.commit()
+                     flash('Skill removed.', 'info')
+                 else:
+                     flash('Skill not found in your profile.', 'warning')
+             except Exception as e:
+                 db.session.rollback()
+                 flash(f'Error removing skill: {e}', 'error')
+             return redirect(url_for('profile'))
+
         if 'college' in request.form:
              current_user.college = request.form.get('college')
         if 'hobbies' in request.form:
@@ -836,13 +851,16 @@ def profile():
         })
 
     all_skills = Skill.query.all()
+    user_skill_names = [us.skill.name for us in current_user.skills]
+
     return render_template('profile.html',
                            recommended_clubs=recommended_clubs,
                            user_hobbies=user_hobbies,
                            completion_score=completion_score,
                            heatmap_data=json.dumps(heatmap_data),
                            achievements=achievements,
-                           all_skills=all_skills)
+                           all_skills=all_skills,
+                           user_skill_names=user_skill_names)
 
 @app.route('/portfolio/download')
 @login_required

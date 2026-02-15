@@ -191,7 +191,14 @@
                 <div
                     class="glass-card badge-card {{ 'badge-earned' if ach.earned else 'badge-locked' }} {{ 'rarity-' + ach.rarity + '-card' if ach.earned }}">
                     <span class="badge-icon">{{ ach.icon }}</span>
-                    <div class="badge-name">{{ ach.name }}</div>
+                    <div class="badge-name">
+                        {{ ach.name }}
+                        {% if ach.name == 'Hackathon Winner' and total_wins > 0 %}
+                        <span
+                            style="font-size:0.75rem; background:rgba(255,255,255,0.15); padding:0.1rem 0.4rem; border-radius:10px; margin-left:0.25rem;">x{{
+                            total_wins }}</span>
+                        {% endif %}
+                    </div>
                     <div class="badge-desc">{{ ach.desc }}</div>
                     <span class="badge-rarity rarity-{{ ach.rarity }}">{{ ach.rarity }}</span>
                     <div class="badge-earned-pct">{{ ach.earned_pct }}% of students earned</div>

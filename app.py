@@ -27,7 +27,7 @@ BADGE_DEFINITIONS = {
     'First Club Joined':   {'icon': '🏅', 'desc': 'Joined your first club',            'rarity': 'common',    'xp': 20},
     'Club Leader':         {'icon': '👑', 'desc': 'Created a club',                     'rarity': 'rare',      'xp': 50},
     'Event Speaker':       {'icon': '🎤', 'desc': 'Spoke at an event',                  'rarity': 'rare',      'xp': 40},
-    'Hackathon Winner':    {'icon': '🧠', 'desc': 'Won a competition',                  'rarity': 'legendary', 'xp': 100},
+    'Hackathon Winner':    {'icon': '🏆', 'desc': 'Champions choice - won a hackathon', 'rarity': 'epic',      'xp': 100},
     'Streak 7':            {'icon': '🔥', 'desc': '7-day activity streak',              'rarity': 'epic',      'xp': 60},
     'Top Contributor':     {'icon': '🌟', 'desc': 'Reached top 3 on leaderboard',       'rarity': 'legendary', 'xp': 80},
     'Social Butterfly':    {'icon': '🦋', 'desc': 'Joined 5+ events',                   'rarity': 'uncommon',  'xp': 30},
@@ -39,9 +39,20 @@ ITEM_RARITY_HIERARCHY = {
     'legendary': 5,
     'epic': 4,
     'rare': 3,
-    'uncommon': 2,
     'common': 1
 }
+
+SKILL_GROUPS = {
+    'Coding': ['DSA', 'Web Development', 'Machine Learning', 'Python', 'JavaScript', 'C++', 'Java', 'Database Management'],
+    'Design': ['UI/UX Design', 'Graphic Design', 'Figma', 'Adobe Illustrator', 'Product Design'],
+    'Leadership': ['Public Speaking', 'Team Management', 'Event Management', 'Strategic Planning'],
+    'Sports': ['Cricket', 'Football', 'Badminton', 'Sportsmanship'],
+    'Arts': ['Music', 'Photography', 'Gaming', 'Fine Arts']
+}
+
+@app.context_processor
+def inject_global_data():
+    return dict(BADGE_DEFINITIONS=BADGE_DEFINITIONS, SKILL_GROUPS=SKILL_GROUPS)
 
 LEVEL_THRESHOLDS = [0, 50, 120, 220, 350, 520, 740, 1020, 1360, 1800, 2500]
 LEVEL_NAMES = [
@@ -79,6 +90,12 @@ def get_level_info(xp):
 # ─────────────────────────────────────────────
 #  MODELS
 # ─────────────────────────────────────────────
+# Recommendation / Association Table for Shortlisting
+recruiter_shortlist = db.Table('recruiter_shortlist',
+    db.Column('recruiter_id', db.Integer, db.ForeignKey('user.id'), primary_key=True),
+    db.Column('student_id', db.Integer, db.ForeignKey('user.id'), primary_key=True)
+)
+
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(20), unique=True, nullable=False)
@@ -94,10 +111,23 @@ class User(db.Model, UserMixin):
     last_active = db.Column(db.DateTime, default=datetime.utcnow)
     participation_score = db.Column(db.Integer, default=0)
     is_admin = db.Column(db.Boolean, default=False)
+    is_recruiter = db.Column(db.Boolean, default=False)
+    company = db.Column(db.String(100), nullable=True)
+
     clubs_managed = db.relationship('Club', backref='manager', lazy=True)
     registrations = db.relationship('EventRegistration', backref='user', lazy=True)
     profile_image = db.Column(db.String(20), nullable=False, default='default.jpg')
     skills = db.relationship('UserSkill', backref='user', lazy=True)
+
+    # Added relationship for shortlisted students
+    shortlisted = db.relationship(
+        'User', 
+        secondary=recruiter_shortlist,
+        primaryjoin=(recruiter_shortlist.c.recruiter_id == id),
+        secondaryjoin=(recruiter_shortlist.c.student_id == id),
+        backref=db.backref('shortlisted_by', lazy='dynamic'),
+        lazy='dynamic'
+    )
 
     @property
     def level_info(self):
@@ -177,10 +207,17 @@ class User(db.Model, UserMixin):
                     skill_counts[cs.skill.name] = skill_counts.get(cs.skill.name, 0) + cs.points
         # Include skills from events
         for reg in self.registrations:
-            if reg.event.event_date < datetime.utcnow(): 
+            if reg.event and reg.event.event_date < datetime.utcnow(): 
                 for cs in reg.event.club.skills:
                     skill_counts[cs.skill.name] = skill_counts.get(cs.skill.name, 0) + int(cs.points * 0.5)
         return skill_counts
+
+    @property
+    def top_skills(self):
+        stats = self.get_skill_stats()
+        # Sort by points descending and take top 5
+        sorted_skills = sorted(stats.items(), key=lambda x: x[1], reverse=True)
+        return [s[0] for s in sorted_skills[:5]]
 
     def get_career_alignment(self):
         user_skills = self.get_skill_stats()
@@ -325,6 +362,14 @@ class Message(db.Model):
     club = db.relationship('Club', backref='chat_messages', lazy=True)
 
 
+class HackathonWin(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    club_id = db.Column(db.Integer, db.ForeignKey('club.id'), nullable=False)
+    win_count = db.Column(db.Integer, default=1)
+    awarded_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
 
 
 
@@ -372,13 +417,46 @@ def register():
         email = request.form.get('email')
         password = request.form.get('password')
         hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
-        interests = request.form.getlist('interests')
+        role = request.form.get('role', 'student')
+        is_recruiter = (role == 'recruiter')
+        company = request.form.get('company') if is_recruiter else None
+        
+        interests = request.form.getlist('interests') if not is_recruiter else []
         hobbies_str = ",".join(interests) if interests else ""
-        user = User(username=username, email=email, password=hashed_password, xp=10, hobbies=hobbies_str)
+        
+        # Recruiters don't get welcome XP/gamification initially
+        initial_xp = 0 if is_recruiter else 10
+        
+        user = User(
+            username=username, 
+            email=email, 
+            password=hashed_password, 
+            xp=initial_xp, 
+            hobbies=hobbies_str,
+            is_recruiter=is_recruiter,
+            company=company
+        )
         try:
             db.session.add(user)
             db.session.commit()
-            flash('Your account has been created! Welcome aboard! +10 XP 🎉', 'success')
+            
+            # Sync interests to UserSkill table
+            if not is_recruiter and interests:
+                for skill_name in interests:
+                    skill = Skill.query.filter_by(name=skill_name).first()
+                    if not skill:
+                        skill = Skill(name=skill_name)
+                        db.session.add(skill)
+                        db.session.commit()
+                    
+                    user_skill = UserSkill(user_id=user.id, skill_id=skill.id, amount=20, is_manual=True)
+                    db.session.add(user_skill)
+                db.session.commit()
+
+            if is_recruiter:
+                flash('Recruiter account created! Welcome to the Talent Portal.', 'success')
+            else:
+                flash('Your account has been created! Welcome aboard! +10 XP 🎉', 'success')
             return redirect(url_for('login'))
         except Exception as e:
             db.session.rollback()
@@ -850,6 +928,10 @@ def profile():
     if badge_dirty:
         db.session.commit()
 
+    # Total Hackathon Wins
+    h_wins = HackathonWin.query.filter_by(user_id=current_user.id).all()
+    total_wins = sum(w.win_count for w in h_wins)
+
     # Achievements
     achievements = []
     for badge_name, info in BADGE_DEFINITIONS.items():
@@ -873,7 +955,8 @@ def profile():
                            heatmap_data=json.dumps(heatmap_data),
                            achievements=achievements,
                            all_skills=all_skills,
-                           user_skill_names=user_skill_names)
+                           user_skill_names=user_skill_names,
+                           total_wins=total_wins)
 
 @app.route('/portfolio/download')
 @login_required
@@ -1080,6 +1163,55 @@ def admin_event_action(event_id, action):
     return redirect(url_for('admin_dashboard'))
 
 
+@app.route('/club/<int:club_id>/award_badge', methods=['POST'])
+@login_required
+def award_hackathon_badge(club_id):
+    club = Club.query.get_or_404(club_id)
+    if club.manager_id != current_user.id:
+        flash('Only the club manager can award this badge.', 'error')
+        return redirect(url_for('club_details', club_id=club_id))
+    
+    email = request.form.get('email', '').strip()
+    try:
+        wins = int(request.form.get('wins', 1))
+    except (ValueError, TypeError):
+        wins = 1
+    
+    student = User.query.filter_by(email=email).first()
+    if not student:
+        flash(f'User with email {email} not found.', 'warning')
+        return redirect(url_for('club_details', club_id=club_id))
+    
+    # Check if student is a member
+    membership = UserClub.query.filter_by(user_id=student.id, club_id=club_id, status='approved').first()
+    if not membership:
+         flash(f'{student.username} is not an approved member of this club.', 'warning')
+         return redirect(url_for('club_details', club_id=club_id))
+
+    try:
+        # Update or create record
+        h_win = HackathonWin.query.filter_by(user_id=student.id, club_id=club_id).first()
+        if h_win:
+            h_win.win_count += wins
+        else:
+            h_win = HackathonWin(user_id=student.id, club_id=club_id, win_count=wins)
+            db.session.add(h_win)
+        
+        # Award badge and XP
+        student.add_badge('Hackathon Winner')
+        # Award XP for the wins
+        student.add_xp(100 * wins) 
+        
+        db.session.commit()
+        msg = f'Awarded {wins} win(s) to {student.username}! XP updated.'
+        flash(msg, 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error awarding badge: {e}', 'error')
+        
+    return redirect(url_for('club_details', club_id=club_id))
+
+
 # ─────────────────────────────────────────────
 #  API ENDPOINTS (for JS animations / live data)
 # ─────────────────────────────────────────────
@@ -1090,6 +1222,103 @@ def api_stats():
         'clubs': Club.query.count(),
         'events': Event.query.count(),
     })
+
+
+@app.route('/calendar')
+def calendar():
+    return render_template('calendar.html')
+
+
+@app.route('/api/events')
+def api_events():
+    # Only show approved events
+    events = Event.query.filter_by(status='approved').all()
+    out = []
+    for e in events:
+        out.append({
+            'id': e.id,
+            'title': e.title,
+            'start': e.event_date.isoformat(),
+            'description': e.description,
+            'club': e.club.name,
+            'xp': e.xp_reward,
+            'url': url_for('club_details', club_id=e.club_id),
+            'difficulty': e.difficulty,
+            'fee': e.registration_fee,
+            'upi': e.upi_id
+        })
+    return jsonify(out)
+
+
+# ─────────────────────────────────────────────
+#  RECRUITER PORTAL ROUTES
+# ─────────────────────────────────────────────
+
+@app.route('/recruiter/dashboard')
+@login_required
+def recruiter_dashboard():
+    if not current_user.is_recruiter:
+        flash('Access restricted to recruiters.', 'danger')
+        return redirect(url_for('home'))
+        
+    shortlisted_count = current_user.shortlisted.count()
+    total_students = User.query.filter_by(is_recruiter=False, is_admin=False).count()
+    return render_template('recruiter_dashboard.html', 
+                           shortlisted_count=shortlisted_count,
+                           total_students=total_students)
+
+
+@app.route('/recruiter/talent')
+@login_required
+def talent_pool():
+    if not current_user.is_recruiter:
+        return redirect(url_for('home'))
+        
+    query = request.args.get('q', '')
+    skill_filter = request.args.get('skill', '')
+    
+    students_query = User.query.filter_by(is_recruiter=False, is_admin=False)
+    
+    if query:
+        students_query = students_query.filter(User.username.contains(query) | User.college.contains(query))
+        
+    if skill_filter:
+        if skill_filter in SKILL_GROUPS:
+            # Filter by a whole category
+            skills_in_group = SKILL_GROUPS[skill_filter]
+            students_query = students_query.join(UserSkill).join(Skill).filter(Skill.name.in_(skills_in_group))
+        else:
+            # Filter by specific skill
+            students_query = students_query.join(UserSkill).join(Skill).filter(Skill.name.ilike(f"%{skill_filter}%"))
+        
+    students = students_query.distinct().order_by(User.xp.desc()).all()
+    
+    # Get IDs of already shortlisted students for UI toggle
+    shortlisted_ids = [s.id for s in current_user.shortlisted.all()]
+    
+    return render_template('talent_pool.html', 
+                           students=students, 
+                           shortlisted_ids=shortlisted_ids,
+                           query=query,
+                           skill_filter=skill_filter)
+
+
+@app.route('/recruiter/shortlist/<int:student_id>', methods=['POST'])
+@login_required
+def toggle_shortlist(student_id):
+    if not current_user.is_recruiter:
+        return jsonify({'error': 'Unauthorized'}), 403
+        
+    student = User.query.get_or_404(student_id)
+    if student in current_user.shortlisted:
+        current_user.shortlisted.remove(student)
+        action = 'removed'
+    else:
+        current_user.shortlisted.append(student)
+        action = 'added'
+        
+    db.session.commit()
+    return jsonify({'status': 'success', 'action': action})
 
 
 @app.route('/api/club/<int:club_id>/messages', methods=['GET', 'POST'])

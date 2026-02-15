@@ -10,7 +10,7 @@
             student communities.</p>
         <div class="hero-actions">
             {% if current_user.is_authenticated %}
-            <a href="{{ url_for('dashboard') }}" class="btn btn-primary btn-lg">📊 My Dashboard</a>
+            <a href="{{ url_for('dashboard') }}" class="btn btn-primary btn-lg">My Dashboard</a>
             <a href="#featured-clubs" class="btn btn-secondary btn-lg">Explore Clubs</a>
             {% else %}
             <a href="{{ url_for('register') }}" class="btn btn-primary btn-lg">Get Started 🚀</a>

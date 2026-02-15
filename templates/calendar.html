@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+{% block title %}Event Calendar{% endblock %}
+
+{% block content %}
+<div class="animate-fadeInUp">
+    <div class="section-header mb-8">
+        <div>
+            <h1 class="section-title">📅 Event Calendar</h1>
+            <p class="section-subtitle">Visualize upcoming campus activities and plan your journey</p>
+        </div>
+        <div class="flex gap-4">
+            <a href="{{ url_for('home') }}#upcoming-events" class="btn btn-secondary btn-sm">List View</a>
+            {% if current_user.is_authenticated %}
+            <a href="{{ url_for('create_event') }}" class="btn btn-primary btn-sm">+ Create Event</a>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="glass-card p-6" style="min-height: 600px;">
+        <div id="calendar"></div>
+    </div>
+</div>
+
+<!-- FullCalendar Modal (Custom Detail View) -->
+<div id="eventDetailModal" class="modal-overlay" style="display:none;">
+    <div class="glass-card-static modal-content animate-zoomIn"
+        style="max-width:500px; width:90%; padding:2rem; position:relative;">
+        <button onclick="closeEventDetailModal()" class="modal-close">&times;</button>
+        <div style="text-align:center; margin-bottom:1.5rem;">
+            <span style="font-size:3rem; display:block; margin-bottom:0.5rem;">📅</span>
+            <h2 id="detailTitle" style="font-size:1.5rem; font-weight:800; color:var(--text-primary);">Event Title</h2>
+            <div id="detailClub" class="text-xs text-muted mt-1"
+                style="color:var(--accent-primary-light); font-weight:700;">Club Name</div>
+        </div>
+
+        <div id="detailDescription" class="text-secondary text-sm mb-6"
+            style="line-height:1.6; max-height:150px; overflow-y:auto; padding-right:10px;">
+            Description...
+        </div>
+
+        <div class="flex flex-col gap-3">
+            <div class="flex justify-between items-center bg-glass p-3 rounded-md border border-glass">
+                <span class="text-sm">Reward:</span>
+                <span id="detailXP" class="xp-reward-badge" style="font-size:0.9rem;">+0 XP</span>
+            </div>
+            <button id="detailJoinBtn" class="btn btn-primary w-full text-center py-3">Register Now & Earn XP ⚡</button>
+            <a id="detailLink" href="#" class="text-center text-xs text-muted hover:text-white mt-1">View Club Details
+                →</a>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<!-- FullCalendar Script -->
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const calendarEl = document.getElementById('calendar');
+        const eventDetailModal = document.getElementById('eventDetailModal');
+        const detailJoinBtn = document.getElementById('detailJoinBtn');
+
+        const calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,timeGridWeek,listMonth'
+            },
+            themeSystem: 'standard',
+            events: '/api/events',
+            eventClick: function (info) {
+                info.jsEvent.preventDefault(); // don't let it navigate directly
+
+                // Pop the modal with details
+                const event = info.event;
+                const ext = event.extendedProps;
+
+                document.getElementById('detailTitle').textContent = event.title;
+                document.getElementById('detailClub').textContent = ext.club;
+                document.getElementById('detailDescription').textContent = ext.description;
+                document.getElementById('detailXP').textContent = `+${ext.xp} XP`;
+                document.getElementById('detailLink').href = ext.url;
+
+                // Set up direct registration button
+                detailJoinBtn.onclick = () => {
+                    closeEventDetailModal();
+                    {% if current_user.is_authenticated %}
+                    openRegisterModal({
+                        id: event.id,
+                        title: event.title,
+                        description: ext.description,
+                        difficulty: ext.difficulty,
+                        xp: ext.xp,
+                        fee: ext.fee,
+                        upi: ext.upi
+                    });
+                    {% else %}
+                    window.location.href = "{{ url_for('login') }}";
+        {% endif %}
+    };
+
+    eventDetailModal.style.display = 'flex';
+            },
+    eventDidMount: function (info) {
+        // Style event elements
+        info.el.style.borderRadius = '6px';
+        info.el.style.border = 'none';
+        info.el.style.padding = '2px 4px';
+        info.el.style.fontSize = '0.75rem';
+        info.el.style.fontWeight = '600';
+        info.el.style.background = 'linear-gradient(135deg, var(--accent-primary), var(--accent-primary-dark))';
+        info.el.style.color = 'white';
+        info.el.style.cursor = 'pointer';
+        info.el.style.transition = 'transform 0.2s';
+
+        info.el.onmouseover = () => info.el.style.transform = 'scale(1.02)';
+        info.el.onmouseout = () => info.el.style.transform = 'scale(1)';
+    },
+    // Style for FullCalendar to fit the theme
+    dayHeaderContent: (arg) => {
+        return { html: `<span style="color:var(--text-muted); font-size:0.8rem; font-weight:700;">${arg.text.toUpperCase()}</span>` };
+    }
+        });
+
+    calendar.render();
+
+    window.closeEventDetailModal = function () {
+        eventDetailModal.style.display = 'none';
+    };
+
+    // Close on outside click
+    eventDetailModal.onclick = function (e) {
+        if (e.target === eventDetailModal) closeEventDetailModal();
+    };
+    });
+</script>
+
+<style>
+    /* FullCalendar Premium Theming Overlay */
+    :root {
+        --fc-border-color: rgba(255, 255, 255, 0.05);
+        --fc-daygrid-event-dot-width: 8px;
+        --fc-page-bg-color: transparent;
+        --fc-neutral-bg-color: rgba(255, 255, 255, 0.02);
+        --fc-list-event-hover-bg-color: rgba(99, 102, 241, 0.1);
+    }
+
+    .fc {
+        color: var(--text-primary);
+        font-family: inherit;
+    }
+
+    .fc .fc-toolbar-title {
+        font-size: 1.25rem;
+        font-weight: 800;
+        background: var(--gradient-primary);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    .fc .fc-button {
+        background: var(--bg-glass);
+        border: 1px solid var(--border-glass);
+        color: var(--text-primary);
+        font-weight: 600;
+        text-transform: capitalize;
+        transition: all 0.2s;
+    }
+
+    .fc .fc-button:hover {
+        background: rgba(99, 102, 241, 0.2) !important;
+        border-color: var(--accent-primary) !important;
+    }
+
+    .fc .fc-button-active {
+        background: var(--accent-primary) !important;
+        border-color: var(--accent-primary) !important;
+        color: white !important;
+    }
+
+    .fc-theme-standard td,
+    .fc-theme-standard th {
+        border: 1px solid var(--fc-border-color);
+    }
+
+    .fc .fc-day-today {
+        background: rgba(99, 102, 241, 0.05) !important;
+    }
+
+    .fc-daygrid-day-number {
+        font-weight: 700;
+        color: var(--text-muted);
+        padding: 8px !important;
+    }
+
+    .fc-col-header-cell {
+        padding: 12px 0 !important;
+        background: rgba(255, 255, 255, 0.02);
+    }
+</style>
+{% endblock %}

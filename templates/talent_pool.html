@@ -1,0 +1,225 @@
+{% extends "base.html" %}
+{% block title %}Talent Discovery Pool{% endblock %}
+
+{% block content %}
+<div class="animate-fadeInUp">
+    <div class="section-header mb-8">
+        <div>
+            <h1 class="section-title">🎯 Talent Discovery Pool</h1>
+            <p class="section-subtitle">Search and filter top campus talent based on verified achievements.</p>
+        </div>
+        <a href="{{ url_for('recruiter_dashboard') }}" class="btn btn-secondary btn-sm">← Back to Dashboard</a>
+    </div>
+
+    <!-- Search & Filters -->
+    <div class="glass-card p-6 mb-8">
+        <form method="GET" class="flex flex-wrap gap-4">
+            <div class="flex-grow" style="min-width: 250px;">
+                <input type="text" name="q" value="{{ query }}" class="form-input"
+                    placeholder="Search by name, college..." style="margin: 0;">
+            </div>
+            <div style="min-width: 150px;">
+                <select name="skill" class="form-input" style="margin: 0;">
+                    <option value="">All Skills</option>
+                    {% for group_name, skills in SKILL_GROUPS.items() %}
+                    <optgroup label="{{ group_name }}">
+                        <option value="{{ group_name }}" {% if skill_filter==group_name %}selected{% endif %}>
+                            All {{ group_name }}
+                        </option>
+                        {% for s_name in skills %}
+                        <option value="{{ s_name }}" {% if skill_filter==s_name %}selected{% endif %}>
+                            {{ s_name }}
+                        </option>
+                        {% endfor %}
+                    </optgroup>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary">Filter Talent </button>
+            {% if query or skill_filter %}
+            <a href="{{ url_for('talent_pool') }}" class="btn btn-nav btn-nav-ghost">Clear</a>
+            {% endif %}
+        </form>
+    </div>
+
+    <!-- Talent Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for student in students %}
+        <div class="glass-card talent-card animate-zoomIn" data-student-id="{{ student.id }}">
+            <div class="p-6">
+                <div class="flex items-start justify-between mb-4">
+                    <div class="flex items-center gap-4">
+                        <img src="{{ url_for('static', filename='profile_pics/' + student.profile_image) }}" alt="PFP"
+                            class="talent-pfp rounded-full border-2 border-glass object-cover">
+                        <div>
+                            <h3 class="font-bold text-lg mb-0 text-white">{{ student.username }}</h3>
+                            <div class="text-xs text-muted">{{ student.college or 'CampusConnect Student' }}</div>
+                        </div>
+                    </div>
+                    <button class="shortlist-btn {% if student.id in shortlisted_ids %}active{% endif %}"
+                        onclick="toggleShortlist({{ student.id }}, this)">
+                        {% if student.id in shortlisted_ids %}★{% else %}☆{% endif %}
+                    </button>
+                </div>
+
+                <div class="flex items-center gap-2 mb-4">
+                    <span class="xp-badge">Lv.{{ student.level_info.level }}</span>
+                    <span class="text-xs font-bold text-muted">{{ student.xp }} XP</span>
+                </div>
+
+                <div class="mb-4">
+                    <div class="text-xs font-bold text-muted mb-2 text-uppercase" style="letter-spacing: 1px;">Top
+                        Achievements</div>
+                    <div class="flex gap-2 flex-wrap">
+                        {% set top_badges = student.top_badges %}
+                        {% if top_badges %}
+                        {% for b_name in top_badges %}
+                        {% set b_info = BADGE_DEFINITIONS.get(b_name) %}
+                        <span class="badge-mini" title="{{ b_name }}">{{ b_info.icon }}</span>
+                        {% endfor %}
+                        {% else %}
+                        <span class="text-xs text-muted italic">No badges yet</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div>
+                    <div class="text-xs font-bold text-muted mb-2 text-uppercase" style="letter-spacing: 1px;">Verified
+                        Skills</div>
+                    <div class="flex gap-1 flex-wrap">
+                        {% set t_skills = student.top_skills %}
+                        {% if t_skills %}
+                        {% for s_name in t_skills %}
+                        <span class="skill-tag-mini">{{ s_name }}</span>
+                        {% endfor %}
+                        {% else %}
+                        <span class="text-xs text-muted italic">Exploring skills...</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            <div class="p-4 border-t border-glass bg-glass-dark text-center">
+                <a href="{{ url_for('profile') }}"
+                    class="text-sm font-bold text-gradient hover:opacity-80 transition-opacity">View Full Portfolio
+                    →</a>
+            </div>
+        </div>
+        {% else %}
+        <div class="col-span-full text-center py-12 glass-card">
+            <span style="font-size: 3rem;">🔍</span>
+            <h3 class="text-xl font-bold mt-4">No talent found matching your criteria</h3>
+            <p class="text-muted">Try Broadening your search or clearing filters.</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<style>
+    .talent-card {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        border: 1px solid var(--border-glass);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .talent-card:hover {
+        transform: translateY(-5px);
+        border-color: var(--accent-primary);
+        box-shadow: 0 10px 30px -10px rgba(99, 102, 241, 0.4);
+    }
+
+    .talent-pfp {
+        width: 64px;
+        height: 64px;
+        flex-shrink: 0;
+    }
+
+    .shortlist-btn {
+        background: none;
+        border: none;
+        color: var(--text-muted);
+        font-size: 1.5rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        line-height: 1;
+        padding: 4px;
+    }
+
+    .shortlist-btn:hover {
+        color: var(--accent-amber);
+        transform: scale(1.2);
+    }
+
+    .shortlist-btn.active {
+        color: var(--accent-amber);
+        text-shadow: 0 0 10px rgba(245, 158, 11, 0.5);
+    }
+
+    .badge-mini {
+        font-size: 1.2rem;
+        filter: grayscale(0.5);
+        transition: all 0.2s;
+    }
+
+    .talent-card:hover .badge-mini {
+        filter: grayscale(0);
+        transform: scale(1.1);
+    }
+
+    .skill-tag-mini {
+        padding: 2px 8px;
+        background: rgba(99, 102, 241, 0.1);
+        border: 1px solid rgba(99, 102, 241, 0.2);
+        border-radius: 4px;
+        font-size: 0.7rem;
+        color: var(--accent-primary-light);
+        font-weight: 600;
+    }
+
+    .text-uppercase {
+        text-transform: uppercase;
+    }
+
+    /* Dropdown Visibility Fix */
+    select.form-input optgroup {
+        background-color: #1a1a2e;
+        color: var(--accent-primary-light);
+        font-weight: 700;
+        font-size: 0.85rem;
+        padding-top: 8px;
+    }
+
+    select.form-input option {
+        background-color: #1a1a2e;
+        color: #ffffff;
+        font-weight: 400;
+        padding: 8px;
+    }
+
+    select.form-input option:checked {
+        background-color: var(--accent-primary);
+        color: white;
+    }
+</style>
+
+<script>
+    function toggleShortlist(studentId, btn) {
+        fetch(`/recruiter/shortlist/${studentId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    if (data.action === 'added') {
+                        btn.classList.add('active');
+                        btn.textContent = '★';
+                    } else {
+                        btn.classList.remove('active');
+                        btn.textContent = '☆';
+                    }
+                }
+            });
+    }
+</script>
+{% endblock %}

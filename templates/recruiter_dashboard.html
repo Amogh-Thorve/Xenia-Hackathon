@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Recruiter Dashboard{% endblock %}
+
+{% block content %}
+<div class="animate-fadeInUp">
+    <div class="section-header mb-8">
+        <div>
+            <h1 class="section-title">🏢 Recruiter Dashboard</h1>
+            <p class="section-subtitle">Welcome back, <strong>{{ current_user.company }}</strong>. Discover and connect
+                with top campus talent.</p>
+        </div>
+        <a href="{{ url_for('talent_pool') }}" class="btn btn-primary">Browse Talent Pool 🚀</a>
+    </div>
+
+    <div class="stats-grid mb-12">
+        <div class="glass-card stat-card">
+            <div class="stat-icon" style="background: rgba(99, 102, 241, 0.1); color: var(--accent-primary);">👥</div>
+            <div class="stat-info">
+                <div class="stat-value" data-counter="{{ total_students }}">0</div>
+                <div class="stat-label">Active Students</div>
+            </div>
+        </div>
+        <div class="glass-card stat-card">
+            <div class="stat-icon" style="background: rgba(245, 158, 11, 0.1); color: var(--accent-amber);">⭐</div>
+            <div class="stat-info">
+                <div class="stat-value" id="shortlist-count-display" data-counter="{{ shortlisted_count }}">0</div>
+                <div class="stat-label">Students Shortlisted</div>
+            </div>
+        </div>
+        <div class="glass-card stat-card">
+            <div class="stat-icon" style="background: rgba(16, 185, 129, 0.1); color: var(--accent-success);">🔥</div>
+            <div class="stat-info">
+                <div class="stat-value" data-counter="12">0</div>
+                <div class="stat-label">New Achievements Today</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div class="glass-card p-6">
+            <h3 class="text-xl font-bold mb-4 flex items-center gap-2">
+                <span>📈</span> Talent Trends
+            </h3>
+            <div
+                style="height: 250px; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.02); border-radius: var(--radius-md); border: 1px dashed var(--border-glass);">
+                <p class="text-muted text-sm">Talent analytics will appear here as the platform grows.</p>
+            </div>
+        </div>
+
+        <div class="glass-card p-6">
+            <h3 class="text-xl font-bold mb-4 flex items-center gap-2">
+                <span>🎯</span> Quick Actions
+            </h3>
+            <div class="flex flex-col gap-3">
+                <a href="{{ url_for('talent_pool', skill='Python') }}"
+                    class="glass-card p-4 hover:bg-glass border border-glass transition-all flex justify-between items-center group">
+                    <span class="font-medium text-sm">Find Python Developers</span>
+                    <span class="text-xs text-muted group-hover:text-white">View 12+ students →</span>
+                </a>
+                <a href="{{ url_for('talent_pool', skill='Design') }}"
+                    class="glass-card p-4 hover:bg-glass border border-glass transition-all flex justify-between items-center group">
+                    <span class="font-medium text-sm">Browse UI/UX Designers</span>
+                    <span class="text-xs text-muted group-hover:text-white">View 8+ students →</span>
+                </a>
+                <a href="#"
+                    class="glass-card p-4 hover:bg-glass border border-glass transition-all flex justify-between items-center group">
+                    <span class="font-medium text-sm">Post a Job Opportunity</span>
+                    <span class="xp-badge">Coming Soon</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

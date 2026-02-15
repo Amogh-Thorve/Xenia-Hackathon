@@ -24,7 +24,7 @@ with app.app_context():
 
     u1 = get_or_create_user('Amit', 'amit@example.com', college='IIT Bombay', 
                             hobbies='Coding, AI, Chess', xp=350, points=350, 
-                            streak_count=5, badges='Club Leader,First Club Joined,Newbie,Social Butterfly,')
+                            streak_count=5, badges='Club Leader,First Club Joined,Newbie,Social Butterfly,', is_admin=True)
     u2 = get_or_create_user('Priya', 'priya@example.com', college='BITS Pilani', 
                             hobbies='Music, Dance, Photography', xp=220, points=220, 
                             streak_count=3, badges='Club Leader,First Club Joined,Newbie,')

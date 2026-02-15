@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="animate-fadeInUp">
+    <h1 class="page-title mb-6">🛡️ Admin Dashboard</h1>
+    
+    <!-- Pending Clubs Section -->
+    <div class="mb-10">
+        <h2 class="section-title mb-4">Pending Clubs ({{ pending_clubs|length }})</h2>
+        {% if pending_clubs %}
+        <div class="card-grid">
+            {% for club in pending_clubs %}
+            <div class="glass-card p-6">
+                <div class="flex items-center gap-4 mb-4">
+                    <img src="{{ url_for('static', filename='club_logos/' + club.image_file) }}" 
+                         alt="{{ club.name }}" 
+                         style="width:50px; height:50px; border-radius:10px; object-fit:cover;">
+                    <div>
+                        <h3 class="font-bold text-lg text-white">{{ club.name }}</h3>
+                        <div class="text-xs text-muted">{{ club.category }} · Manager: {{ club.manager.username }}</div>
+                    </div>
+                </div>
+                <p class="text-sm text-secondary mb-4 line-clamp-2">{{ club.description }}</p>
+                <div class="flex gap-2">
+                    <a href="{{ url_for('admin_club_action', club_id=club.id, action='approve') }}" 
+                       class="btn btn-primary btn-sm w-full">Approve</a>
+                    <a href="{{ url_for('admin_club_action', club_id=club.id, action='reject') }}" 
+                       class="btn btn-outline-danger btn-sm w-full"
+                       onclick="return confirm('Are you sure you want to reject and delete this club?')">Reject</a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="glass-card-static p-6 text-center text-muted">
+            No pending club requests.
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Pending Events Section -->
+    <div>
+        <h2 class="section-title mb-4">Pending Events ({{ pending_events|length }})</h2>
+        {% if pending_events %}
+        <div class="card-grid">
+            {% for event in pending_events %}
+            <div class="glass-card p-6">
+                <div class="mb-2">
+                    <span class="text-xs font-bold uppercase tracking-wider text-accent-primary">{{ event.club.name }}</span>
+                    <h3 class="font-bold text-lg text-white mt-1">{{ event.title }}</h3>
+                </div>
+                <div class="text-xs text-muted mb-3">
+                    📅 {{ event.event_date.strftime('%b %d, %Y @ %I:%M %p') }} <br>
+                    👤 Creator: {{ event.creator.username }} | XP: {{ event.xp_reward }}
+                </div>
+                <p class="text-sm text-secondary mb-4 line-clamp-2">{{ event.description }}</p>
+                <div class="flex gap-2">
+                    <a href="{{ url_for('admin_event_action', event_id=event.id, action='approve') }}" 
+                       class="btn btn-primary btn-sm w-full">Approve</a>
+                    <a href="{{ url_for('admin_event_action', event_id=event.id, action='reject') }}" 
+                       class="btn btn-outline-danger btn-sm w-full"
+                       onclick="return confirm('Are you sure you want to reject and delete this event?')">Reject</a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="glass-card-static p-6 text-center text-muted">
+            No pending event requests.
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+    .btn-outline-danger {
+        border: 1px solid rgba(239, 68, 68, 0.5);
+        color: #ef4444;
+        background: transparent;
+        transition: all 0.2s;
+    }
+    .btn-outline-danger:hover {
+        background: rgba(239, 68, 68, 0.1);
+        border-color: #ef4444;
+    }
+</style>
+{% endblock %}

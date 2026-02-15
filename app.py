@@ -238,6 +238,7 @@ class Club(db.Model):
     events = db.relationship('Event', backref='club', lazy=True)
     feedback = db.relationship('Feedback', backref='club', lazy=True)
     skills = db.relationship('ClubSkill', backref='club', lazy=True)
+    status = db.Column(db.String(20), default='pending') # pending, approved, rejected
 
     @property
     def member_count(self):
@@ -268,6 +269,7 @@ class Event(db.Model):
     creator_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True) # Creator of the event
     registrations = db.relationship('EventRegistration', backref='event', lazy=True)
     creator = db.relationship('User', backref=db.backref('events_created', lazy=True))
+    status = db.Column(db.String(20), default='pending') # pending, approved, rejected
 
     @property
     def attendee_count(self):
@@ -355,8 +357,8 @@ def inject_globals():
 # ─────────────────────────────────────────────
 @app.route('/')
 def home():
-    clubs = Club.query.all()
-    events = Event.query.order_by(Event.event_date.asc()).all()
+    clubs = Club.query.filter_by(status='approved').all()
+    events = Event.query.filter(Event.status == 'approved').order_by(Event.event_date.asc()).all()
     top_users = User.query.order_by(User.xp.desc()).limit(5).all()
     return render_template('home.html', clubs=clubs, events=events, top_users=top_users)
 
@@ -390,17 +392,27 @@ def login():
     if current_user.is_authenticated:
         return redirect(url_for('home'))
     if request.method == 'POST':
-        email = request.form.get('email')
-        password = request.form.get('password')
+        email = request.form.get('email', '').strip()
+        password = request.form.get('password', '')
+        
+        print(f"Login Attempt: Email='{email}', Password Length={len(password)}")
+        
         user = User.query.filter_by(email=email).first()
-        if user and bcrypt.check_password_hash(user.password, password):
-            remember = True if request.form.get('remember-me') else False
-            login_user(user, remember=remember)
-            user.update_streak()
-            db.session.commit()
-            return redirect(url_for('home'))
+        if user:
+            print(f"User Found: {user.username}, Checking password...")
+            if bcrypt.check_password_hash(user.password, password):
+                print("Password Match! Logging in...")
+                remember = True if request.form.get('remember-me') else False
+                login_user(user, remember=remember)
+                user.update_streak()
+                db.session.commit()
+                return redirect(url_for('home'))
+            else:
+                print("Password Mismatch!")
         else:
-            flash('Login Unsuccessful. Please check email and password', 'danger')
+            print("User Not Found in DB.")
+        
+        flash('Login Unsuccessful. Please check email and password', 'danger')
     return render_template('login.html')
 
 
@@ -429,12 +441,13 @@ def create_club():
             leveled = current_user.add_xp(50)
             current_user.add_badge('Club Leader')
             current_user.update_streak()
+            current_user.update_streak()
             db.session.add(club)
             db.session.commit()
-            msg = 'Club created! +50 XP & "Club Leader" badge! 🎉'
+            msg = 'Club submitted for approval! You will be notified once an admin reviews it.'
             if leveled:
                 msg += ' 🆙 Level Up!'
-            flash(msg, 'success')
+            flash(msg, 'info')
             return redirect(url_for('home'))
         except Exception as e:
             db.session.rollback()
@@ -465,7 +478,7 @@ def create_event():
             current_user.update_streak()
             db.session.add(event)
             db.session.commit()
-            flash('Event created! +20 XP ✨', 'success')
+            flash('Event submitted for approval! It will appear once approved.', 'info')
             return redirect(url_for('home'))
         except Exception as e:
             db.session.rollback()
@@ -1005,6 +1018,66 @@ def submit_feedback(club_id):
             db.session.remove()
             flash(f'Error submitting feedback: {e}', 'error')
     return redirect(url_for('club_details', club_id=club.id))
+
+
+# ─────────────────────────────────────────────
+#  ADMIN ROUTES
+# ─────────────────────────────────────────────
+@app.route('/admin/dashboard')
+@login_required
+def admin_dashboard():
+    if not current_user.is_admin:
+        flash('Access denied. Admin only.', 'danger')
+        return redirect(url_for('home'))
+    
+    pending_clubs = Club.query.filter_by(status='pending').all()
+    pending_events = Event.query.filter_by(status='pending').all()
+    
+    return render_template('admin_dashboard.html', pending_clubs=pending_clubs, pending_events=pending_events)
+
+@app.route('/admin/club/<int:club_id>/<action>')
+@login_required
+def admin_club_action(club_id, action):
+    if not current_user.is_admin:
+        return redirect(url_for('home'))
+    
+    club = Club.query.get_or_404(club_id)
+    if action == 'approve':
+        club.status = 'approved'
+        # Award XP and Badges ONLY upon approval
+        manager = club.manager
+        leveled = manager.add_xp(50)
+        manager.add_badge('Club Leader')
+        manager.update_streak()
+        flash(f'Club "{club.name}" approved!', 'success')
+    elif action == 'reject':
+        db.session.delete(club) # Simplified rejection: just delete
+        flash(f'Club "{club.name}" rejected and deleted.', 'warning')
+    
+    db.session.commit()
+    return redirect(url_for('admin_dashboard'))
+
+@app.route('/admin/event/<int:event_id>/<action>')
+@login_required
+def admin_event_action(event_id, action):
+    if not current_user.is_admin:
+        return redirect(url_for('home'))
+    
+    event = Event.query.get_or_404(event_id)
+    if action == 'approve':
+        event.status = 'approved'
+        # Award XP upon approval
+        creator = event.creator
+        if creator:
+            creator.add_xp(20)
+            creator.update_streak()
+        flash(f'Event "{event.title}" approved!', 'success')
+    elif action == 'reject':
+        db.session.delete(event)
+        flash(f'Event "{event.title}" rejected and deleted.', 'warning')
+    
+    db.session.commit()
+    return redirect(url_for('admin_dashboard'))
 
 
 # ─────────────────────────────────────────────
